@@ -1,0 +1,1119 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>MacBook Identification Wiki (2006–present)</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #161a22;
+    --panel-2: #1c2230;
+    --border: #2a3142;
+    --text: #e7ecf3;
+    --muted: #9aa3b2;
+    --accent: #7ab8ff;
+    --accent-2: #ffd166;
+    --pro: #6ee7b7;
+    --air: #93c5fd;
+    --mb: #fca5a5;
+    --row: #131722;
+    --row-alt: #171c28;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f7fa;
+      --panel: #ffffff;
+      --panel-2: #f0f3f8;
+      --border: #d8dee9;
+      --text: #1b2230;
+      --muted: #5a6679;
+      --accent: #2563eb;
+      --accent-2: #b45309;
+      --pro: #047857;
+      --air: #1d4ed8;
+      --mb: #b91c1c;
+      --row: #ffffff;
+      --row-alt: #f5f7fa;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text);
+    font: 14px/1.45 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, system-ui, sans-serif; }
+  header {
+    padding: 22px 28px 14px; border-bottom: 1px solid var(--border); background: var(--panel);
+    position: sticky; top: 0; z-index: 5;
+  }
+  h1 { margin: 0 0 4px; font-size: 22px; letter-spacing: -0.01em; }
+  .sub { color: var(--muted); font-size: 13px; }
+  nav.tabs { display: flex; gap: 0; margin-top: 14px; border-bottom: 1px solid var(--border); }
+  nav.tabs .tab {
+    background: transparent; color: var(--muted); border: 0; border-bottom: 2px solid transparent;
+    padding: 10px 16px; margin-bottom: -1px; font: inherit; font-size: 13px; cursor: pointer;
+    letter-spacing: 0.01em;
+  }
+  nav.tabs .tab:hover { color: var(--text); }
+  nav.tabs .tab.active { color: var(--text); border-bottom-color: var(--accent); font-weight: 600; }
+  .tab-panel[hidden] { display: none !important; }
+  .controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 12px; }
+  .controls.hidden { display: none; }
+  .controls input[type=search], .controls select {
+    background: var(--panel-2); color: var(--text); border: 1px solid var(--border);
+    border-radius: 8px; padding: 8px 12px; font: inherit; min-width: 220px;
+  }
+  .controls input[type=search] { min-width: 320px; }
+  .controls label { color: var(--muted); font-size: 12px; display: inline-flex; gap: 6px; align-items: center; }
+  .controls .count { margin-left: auto; color: var(--muted); font-size: 12px; }
+  main { padding: 0 18px 40px; }
+  .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; margin-top: 16px; background: var(--panel); }
+  #t { border-collapse: separate; border-spacing: 0; width: 100%; min-width: 1280px; font-size: 13px; }
+  thead th {
+    position: sticky; top: 0; background: var(--panel-2); color: var(--text);
+    text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border);
+    user-select: none; cursor: pointer; white-space: nowrap; font-weight: 600;
+  }
+  thead th .arrow { color: var(--muted); margin-left: 4px; font-size: 11px; }
+  tbody td { padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  tbody tr:nth-child(odd)  { background: var(--row); }
+  tbody tr:nth-child(even) { background: var(--row-alt); }
+  tbody tr:hover { background: var(--panel-2); }
+code { background: var(--panel-2); padding: 1px 5px; border-radius: 4px; font-size: 12px; }
+  td.name { min-width: 280px; font-weight: 600; }
+  td.cpu  { min-width: 220px; }
+  td.ram, td.storage { min-width: 130px; }
+  td.display { min-width: 220px; }
+  td.ports { min-width: 280px; }
+  td.battery { min-width: 170px; }
+  td.modelnum, td.modelid { white-space: nowrap; }
+  .legend { color: var(--muted); font-size: 12px; padding: 12px 4px 0; }
+  .legend strong { color: var(--text); }
+  .footer { color: var(--muted); font-size: 12px; padding: 18px 4px; line-height: 1.6; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .hl { background: rgba(255, 209, 102, 0.25); border-radius: 3px; padding: 0 2px; }
+
+  /* Terminal command section */
+  .term { margin-top: 28px; border: 1px solid var(--border); border-radius: 10px; background: var(--panel); padding: 18px 20px; }
+  .term h2 { margin: 0 0 4px; font-size: 18px; letter-spacing: -0.01em; }
+  .term .sub2 { color: var(--muted); font-size: 13px; margin-bottom: 14px; }
+  .cmd-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 14px; }
+  .cmd-group { border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; background: var(--row); }
+  .cmd-group h3 { margin: 0 0 10px; font-size: 14px; color: var(--accent-2); letter-spacing: 0.01em; }
+  .cmd { padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px solid var(--border); }
+  .cmd:last-child { padding-bottom: 0; margin-bottom: 0; border-bottom: 0; }
+  .cmd-row {
+    background: var(--bg);
+    border: 1px solid var(--border); border-radius: 6px;
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 12.5px;
+  }
+  .cmd-row code { background: transparent; padding: 8px 10px; display: block; white-space: pre-wrap; word-break: break-word; color: var(--text); }
+  .cmd-desc { color: var(--muted); font-size: 12.5px; margin-top: 7px; padding: 0 2px; line-height: 1.45; }
+  .cmd-desc code { font-size: 11.5px; }
+  .cmd-out { color: var(--muted); font-size: 11.5px; margin-top: 4px; padding: 0 2px;
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+  .cmd-out::before { content: "→ "; color: var(--accent); }
+
+  /* Size reference tab */
+  .sizes { padding: 4px 0 8px; }
+  .ref-card { border: 1px solid var(--border); border-radius: 10px; background: var(--panel); padding: 14px 16px; max-width: 480px; }
+  .ref-card h3 { margin: 0 0 4px; font-size: 14px; color: var(--accent-2); }
+  .ref-card .sub3 { color: var(--muted); font-size: 12px; margin-bottom: 10px; }
+  table.ref { width: 100%; max-width: 480px; border-collapse: collapse; font-size: 12.5px; font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+  table.ref th, table.ref td { padding: 6px 14px 6px 0; border-bottom: 1px solid var(--border); text-align: left; white-space: nowrap; }
+  table.ref th:last-child, table.ref td:last-child { padding-right: 0; }
+  table.ref th { color: var(--muted); font-weight: 600; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.04em; }
+  table.ref td:first-child { color: var(--accent-2); }
+  table.ref td.num { text-align: right; }
+</style>
+</head>
+<body>
+<header>
+  <h1>MacBook Identification Wiki <span style="color:var(--muted); font-weight: 400; font-size:14px;">— 2006&#8202;–&#8202;present</span></h1>
+  <div class="sub">Every Apple notebook since the Intel transition. Filter, sort, or search to identify your machine by Model ID, A-number, year, or spec.</div>
+  <nav class="tabs" role="tablist">
+    <button class="tab active" data-tab="models" role="tab">Models</button>
+    <button class="tab" data-tab="terminal" role="tab">Terminal commands</button>
+    <button class="tab" data-tab="sizes" role="tab">Size reference</button>
+  </nav>
+  <div class="controls" id="controls">
+    <input id="q" type="search" placeholder="Search anything — “A1989”, “MacBookPro15,2”, “M2 Max 16”, “Touch Bar”, “2021”…" autofocus />
+    <label>Family
+      <select id="family">
+        <option value="">All</option>
+        <option>MacBook Pro</option>
+        <option>MacBook Air</option>
+        <option>MacBook</option>
+      </select>
+    </label>
+    <label>Era
+      <select id="era">
+        <option value="">All</option>
+        <option value="intel">Intel (2006–2020)</option>
+        <option value="silicon">Apple Silicon (2020+)</option>
+      </select>
+    </label>
+    <label>Display
+      <select id="size">
+        <option value="">Any size</option>
+        <option>11"</option>
+        <option>12"</option>
+        <option>13"</option>
+        <option>14"</option>
+        <option>15"</option>
+        <option>16"</option>
+        <option>17"</option>
+      </select>
+    </label>
+    <span class="count" id="count"></span>
+  </div>
+</header>
+
+<main>
+  <section class="tab-panel" data-panel="models">
+  <div class="legend">
+    <strong>How to find your machine:</strong> Apple menu &rarr; About This Mac &rarr; More Info shows the marketing name. For the precise Model Identifier, open Terminal and run <code>sysctl hw.model</code>. The A-number (model number) is engraved on the bottom of the chassis. EMC numbers are next to the regulatory marks.
+  </div>
+
+  <div class="table-wrap">
+    <table id="t">
+      <thead>
+        <tr>
+          <th data-key="name">Marketing Name <span class="arrow">▾</span></th>
+          <th data-key="year">Year</th>
+          <th data-key="modelId">Model Identifier</th>
+          <th data-key="modelNumber">Model Number</th>
+          <th data-key="cpu">CPU</th>
+          <th data-key="ram">RAM</th>
+          <th data-key="storage">Storage</th>
+          <th data-key="display">Display</th>
+          <th data-key="ports">Ports</th>
+          <th data-key="battery">Battery (Wh / max cycles)</th>
+        </tr>
+      </thead>
+      <tbody id="tb"></tbody>
+    </table>
+  </div>
+
+  </section><!-- /panel-models -->
+
+  <section class="tab-panel" data-panel="terminal" hidden>
+  <section class="term">
+    <h2>Terminal commands for identification</h2>
+    <div class="sub2">Run these in Terminal.app (<code>/Applications/Utilities/Terminal.app</code>). Output examples are from a 2021 MacBook Pro 14" (M1 Pro).</div>
+    <div class="cmd-grid">
+
+      <div class="cmd-group">
+        <h3>Model & serial</h3>
+        <div class="cmd">
+          <div class="cmd-row"><code>sysctl hw.model</code></div>
+          <div class="cmd-desc">Model Identifier — match this against the <b>Model Identifier</b> column above.</div>
+          <div class="cmd-out">hw.model: MacBookPro18,3</div>
+        </div>
+        <div class="cmd">
+          <div class="cmd-row"><code>system_profiler SPHardwareDataType</code></div>
+          <div class="cmd-desc">One-shot dump: model name, identifier, chip, cores, memory, serial, hardware UUID, and provisioning UDID. The single most useful command on this page.</div>
+        </div>
+        <div class="cmd">
+          <div class="cmd-row"><code>ioreg -l | grep -i platformserialnumber</code></div>
+          <div class="cmd-desc">Serial number, returned as a full <code>"IOPlatformSerialNumber" = "…"</code> line. The serial is also shown in the <code>system_profiler</code> output above, so you typically only need one of the two.</div>
+        </div>
+      </div>
+
+      <div class="cmd-group">
+        <h3>CPU & architecture</h3>
+        <div class="cmd">
+          <div class="cmd-row"><code>sysctl machdep.cpu.brand_string</code></div>
+          <div class="cmd-desc">CPU model string. On Intel: <code>Intel(R) Core(TM) i7-9750H…</code>. On Apple Silicon: <code>Apple M1 Pro</code> / <code>M2 Max</code> etc.</div>
+        </div>
+        <div class="cmd">
+          <div class="cmd-row"><code>sysctl hw.ncpu</code></div>
+          <div class="cmd-desc">Total logical cores. For the P/E split on Apple Silicon, just read the <i>Total Number of Cores</i> line in the <code>system_profiler SPHardwareDataType</code> output — it's spelled out (e.g. "10 (8 performance and 2 efficiency)").</div>
+        </div>
+        <div class="cmd">
+          <div class="cmd-row"><code>uname -m</code></div>
+          <div class="cmd-desc">Architecture: <code>arm64</code> = Apple Silicon, <code>x86_64</code> = Intel.</div>
+        </div>
+      </div>
+
+      <div class="cmd-group">
+        <h3>Memory</h3>
+        <div class="cmd">
+          <div class="cmd-row"><code>sysctl hw.memsize</code></div>
+          <div class="cmd-desc">Total RAM in <em>bytes</em>. Divide by 1073741824 for GB.</div>
+          <div class="cmd-out">hw.memsize: 17179869184  (16 GB)</div>
+        </div>
+        <div class="cmd">
+          <div class="cmd-row"><code>system_profiler SPMemoryDataType</code></div>
+          <div class="cmd-desc">RAM modules, speed, type (DDR4/LPDDR5/unified), and ECC status. On Apple Silicon, reports memory as on-chip (unified, not user-replaceable).</div>
+        </div>
+      </div>
+
+      <div class="cmd-group">
+        <h3>Storage</h3>
+        <div class="cmd">
+          <div class="cmd-row"><code>diskutil info /</code></div>
+          <div class="cmd-desc">Boot volume report — scan the output for <i>Disk Size</i>, <i>Protocol</i>, and <i>SMART Status</i>. Covers most of what you'd want from <code>diskutil</code>.</div>
+        </div>
+        <div class="cmd">
+          <div class="cmd-row"><code>diskutil list</code></div>
+          <div class="cmd-desc">All disks and partitions. Useful for confirming the internal SSD is the only fixed disk and there's no leftover external volume mounted.</div>
+        </div>
+        <div class="cmd">
+          <div class="cmd-row"><code>system_profiler SPNVMeDataType</code></div>
+          <div class="cmd-desc">SSD model, firmware, capacity, and TRIM status. Apple Silicon and modern Intel SSDs all show here.</div>
+        </div>
+      </div>
+
+      <div class="cmd-group">
+        <h3>Battery health</h3>
+        <div class="cmd">
+          <div class="cmd-row"><code>system_profiler SPPowerDataType</code></div>
+          <div class="cmd-desc">Battery report. Scan the output for <i>Cycle Count</i>, <i>Condition</i> (Normal / Service Recommended / Service Battery), and <i>Maximum Capacity</i>. Compare cycle count to the rated max in the Models tab's battery column.</div>
+          <div class="cmd-out">Cycle Count: 247 · Condition: Normal · Maximum Capacity: 92%</div>
+        </div>
+        <div class="cmd">
+          <div class="cmd-row"><code>pmset -g batt</code></div>
+          <div class="cmd-desc">Current charge percentage, charging/discharging state, and time-to-full or time-to-empty estimate. Quick way to confirm the unit charges.</div>
+        </div>
+      </div>
+
+      <div class="cmd-group">
+        <h3>Resale clearance checks</h3>
+        <div class="cmd">
+          <div class="cmd-row"><code>system_profiler SPHardwareDataType</code></div>
+          <div class="cmd-desc"><b>Activation Lock</b> — the most important check. Look for the <i>Activation Lock Status</i> line in the output. <i>Enabled</i> means the unit is essentially bricked for resale until the previous owner signs out of iCloud and removes the device from Find My.</div>
+          <div class="cmd-out">Activation Lock Status: Disabled</div>
+        </div>
+        <div class="cmd">
+          <div class="cmd-row"><code>fdesetup status</code></div>
+          <div class="cmd-desc"><b>FileVault</b> state. Should read <i>Off</i> on a wiped unit — otherwise the new owner inherits an encrypted disk they can't unlock.</div>
+          <div class="cmd-out">FileVault is Off.</div>
+        </div>
+        <div class="cmd">
+          <div class="cmd-row"><code>sudo profiles status -type enrollment</code></div>
+          <div class="cmd-desc"><b>MDM / Apple Business Manager enrollment.</b> If <i>Enrolled via DEP: Yes</i> the Mac will re-enroll into a corporate MDM the moment it hits the internet — unsellable until removed from the original ABM/ASM org. Critical to catch before listing.</div>
+          <div class="cmd-out">Enrolled via DEP: No · MDM enrollments: None</div>
+        </div>
+        <div class="cmd">
+          <div class="cmd-row"><code>csrutil status</code></div>
+          <div class="cmd-desc"><b>System Integrity Protection.</b> Should be <i>enabled</i> on a properly reset Mac. <i>Disabled</i> means the previous owner was running developer-level tooling; not a deal-breaker but worth noting.</div>
+        </div>
+        <div class="cmd">
+          <div class="cmd-row"><code>dscl . list /Users</code></div>
+          <div class="cmd-desc"><b>User accounts.</b> Long list — scroll past the entries beginning with <code>_</code> and the system accounts (<code>daemon</code>, <code>nobody</code>, <code>root</code>); what remains should be a single admin account on a properly wiped Mac. Multiple human names mean it wasn't erased.</div>
+        </div>
+        <div class="cmd">
+          <div class="cmd-row"><code>scutil --get ComputerName</code></div>
+          <div class="cmd-desc"><b>Computer name.</b> A properly wiped Mac defaults to the model name (e.g. <code>MacBook Pro</code>). Personal names ("Sarah's MacBook Pro") mean the prior account wasn't removed.</div>
+        </div>
+      </div>
+
+      <div class="cmd-group">
+        <h3>Hardware diagnostics</h3>
+        <div class="cmd">
+          <div class="cmd-row"><code>diskutil info disk0</code></div>
+          <div class="cmd-desc"><b>SSD health.</b> Look for the <i>SMART Status</i> line — <i>Verified</i> is healthy, <i>Failing</i> means refurb only. Best on Intel + T2 Macs; Apple Silicon SSDs report TRIM rather than SMART.</div>
+        </div>
+        <div class="cmd">
+          <div class="cmd-row"><code>ls /Library/Logs/DiagnosticReports</code></div>
+          <div class="cmd-desc"><b>Recent kernel panics.</b> Look for files ending in <code>.panic</code> — an empty list (or just <code>.ips</code> files) is the goal. Multiple panics suggest failing RAM, a flaky board, or thermal issues.</div>
+        </div>
+        <div class="cmd">
+          <div class="cmd-row"><code>softwareupdate --list</code></div>
+          <div class="cmd-desc"><b>Pending updates / latest supported macOS.</b> Confirms the unit can install the current OS — a key data point when grading older Macs that may be EOL.</div>
+        </div>
+        <div class="cmd">
+          <div class="cmd-row"><code>system_profiler SPCameraDataType</code></div>
+          <div class="cmd-desc"><b>FaceTime camera</b> enumeration. A missing camera entry is a strong signal of a board-level fault or aftermarket repair. Run <code>SPAudioDataType</code> for built-in mic/speakers.</div>
+        </div>
+        <div class="cmd">
+          <div class="cmd-row"><code>system_profiler SPAirPortDataType</code></div>
+          <div class="cmd-desc"><b>Wi-Fi module</b> details. Look for <i>Card Type</i>, <i>Firmware Version</i>, and <i>Country Code</i>. Confirms the wireless card is recognized — a frequent failure point on older units.</div>
+        </div>
+        <div class="cmd">
+          <div class="cmd-row"><code>system_profiler SPThunderboltDataType</code></div>
+          <div class="cmd-desc"><b>Thunderbolt / USB-C controllers.</b> Lists each port and what's plugged in — quick way to verify all ports are alive without dock testing.</div>
+        </div>
+      </div>
+
+      <div class="cmd-group">
+        <h3>Quick grading workflow</h3>
+        <div class="cmd-desc" style="margin-bottom:10px;">Five short commands, run in order, fill out a complete intake/grading sheet. None require copy-paste.</div>
+        <div class="cmd">
+          <div class="cmd-row"><code>system_profiler SPHardwareDataType</code></div>
+          <div class="cmd-desc"><b>1.</b> Model, identifier, chip, cores, RAM, serial, <i>and</i> Activation Lock status — all in one readable block.</div>
+        </div>
+        <div class="cmd">
+          <div class="cmd-row"><code>system_profiler SPPowerDataType</code></div>
+          <div class="cmd-desc"><b>2.</b> Battery cycle count, condition, and maximum capacity.</div>
+        </div>
+        <div class="cmd">
+          <div class="cmd-row"><code>diskutil info /</code></div>
+          <div class="cmd-desc"><b>3.</b> Boot disk size and SMART status.</div>
+        </div>
+        <div class="cmd">
+          <div class="cmd-row"><code>softwareupdate --list</code></div>
+          <div class="cmd-desc"><b>4.</b> Confirms the unit can still take the current macOS — affects resale value on older hardware.</div>
+        </div>
+        <div class="cmd">
+          <div class="cmd-row"><code>sudo sysdiagnose -f ~/Desktop</code></div>
+          <div class="cmd-desc"><b>5.</b> Optional but recommended on B-grade or below: drops a full <code>.tar.gz</code> diagnostic bundle on the Desktop. Paper trail for warranty disputes.</div>
+        </div>
+      </div>
+
+      <div class="cmd-group">
+        <h3>Display, graphics, OS</h3>
+        <div class="cmd">
+          <div class="cmd-row"><code>system_profiler SPDisplaysDataType</code></div>
+          <div class="cmd-desc">Built-in display resolution, refresh rate, color profile, plus all attached external displays and GPU info.</div>
+        </div>
+        <div class="cmd">
+          <div class="cmd-row"><code>sw_vers</code></div>
+          <div class="cmd-desc">macOS product name, version, and build number — useful when correlating model age with the latest supported macOS.</div>
+          <div class="cmd-out">ProductVersion: 15.4 · BuildVersion: 24E5238b</div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+  </section><!-- /panel-terminal -->
+
+  <section class="tab-panel" data-panel="sizes" hidden>
+    <div class="sizes">
+      <div class="ref-card">
+        <h3>RAM &mdash; <code>hw.memsize</code> values</h3>
+        <div class="sub3">Match the number returned by <code>sysctl hw.memsize</code> to the RAM size.</div>
+        <table class="ref" id="ramTable">
+          <thead><tr><th class="num">hw.memsize</th><th>Approx GB</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </section><!-- /panel-sizes -->
+
+  <div class="footer">
+    <strong>Notes on battery health.</strong> Apple's rated maximum cycle count is the number of full discharge cycles the battery should sustain while retaining ~80% of original capacity. macOS reports the current cycle count under  System Information &rarr; Power &rarr; Health Information. To check: hold ⌥ while clicking the Apple menu, choose System Information, then Power. Pre-Mid-2009 MacBook Pros and the original MacBook Air used 300-cycle batteries; almost every notebook since Mid-2009 uses a 1000-cycle pack.
+    <br><br>
+    <strong>Sources.</strong> Model identifiers, A-numbers, and core specs were compiled from <a href="https://everymac.com/systems/by-identifier/all-macbook-pro-model-identifiers.html" target="_blank">EveryMac.com</a> and verified against Apple's identification pages: <a href="https://support.apple.com/en-us/108052" target="_blank">MacBook Pro</a>, <a href="https://support.apple.com/en-us/102869" target="_blank">MacBook Air</a>, and <a href="https://support.apple.com/en-us/102767" target="_blank">Find your Mac model</a>. Battery cycle ratings come from Apple's <a href="https://support.apple.com/en-us/101575" target="_blank">battery service guide</a>.
+  </div>
+</main>
+
+<script>
+const DATA = [
+  /* ============================== MACBOOK (consumer line, 2006–2017) ============================== */
+  { family:"MacBook", name:"MacBook (13-inch, Core Duo / Core 2 Duo, 2006–2008, white & black)", year:2006,
+    modelId:"MacBook1,1 / MacBook2,1 / MacBook3,1 / MacBook4,1", modelNumber:"A1181",
+    cpu:"Intel Core Duo / Core 2 Duo 1.83–2.4 GHz",
+    ram:"512 MB – 4 GB DDR2", storage:"60–250 GB 2.5\" HDD",
+    display:"13.3\" 1280×800 glossy TN",
+    ports:"2× USB-A, FireWire 400, mini-DVI, Gigabit Ethernet, audio in/out, MagSafe 1",
+    battery:"55 Wh / 300 cycles",
+    size:"13\"", era:"intel" },
+
+  { family:"MacBook", name:"MacBook (13-inch, Aluminum Unibody, Late 2008)", year:2008,
+    modelId:"MacBook5,1", modelNumber:"A1278",
+    cpu:"Intel Core 2 Duo 2.0 / 2.4 GHz (Penryn)",
+    ram:"2–8 GB DDR3", storage:"160–320 GB HDD or 128 GB SSD",
+    display:"13.3\" 1280×800 glossy LED",
+    ports:"2× USB-A, Mini DisplayPort, Gigabit Ethernet, FireWire 400 (none on this rev), MagSafe 1",
+    battery:"45 Wh / 500 cycles",
+    size:"13\"", era:"intel" },
+
+  { family:"MacBook", name:"MacBook (13-inch, White Polycarbonate, Early 2009 / Mid 2009)", year:2009,
+    modelId:"MacBook5,2", modelNumber:"A1181",
+    cpu:"Intel Core 2 Duo 2.0 / 2.13 GHz",
+    ram:"2–4 GB DDR2/DDR3", storage:"120–250 GB HDD",
+    display:"13.3\" 1280×800 glossy",
+    ports:"2× USB-A, FireWire 400, mini-DVI, Gigabit Ethernet, MagSafe 1",
+    battery:"55 Wh / 500 cycles",
+    size:"13\"", era:"intel" },
+
+  { family:"MacBook", name:"MacBook (13-inch, White Polycarbonate Unibody, Late 2009 / Mid 2010)", year:2009,
+    modelId:"MacBook6,1 / MacBook7,1", modelNumber:"A1342",
+    cpu:"Intel Core 2 Duo 2.26 / 2.4 GHz",
+    ram:"2–4 GB DDR3 (8 GB unofficial)", storage:"250 GB HDD",
+    display:"13.3\" 1280×800 glossy LED",
+    ports:"2× USB-A, Mini DisplayPort, Gigabit Ethernet, MagSafe 1",
+    battery:"60 Wh / 1000 cycles (built-in)",
+    size:"13\"", era:"intel" },
+
+  { family:"MacBook", name:"MacBook (Retina, 12-inch, Early 2015)", year:2015,
+    modelId:"MacBook8,1", modelNumber:"A1534",
+    cpu:"Intel Core M 1.1 / 1.2 / 1.3 GHz (Broadwell, fanless)",
+    ram:"8 GB LPDDR3", storage:"256 / 512 GB PCIe SSD",
+    display:"12\" 2304×1440 Retina IPS",
+    ports:"1× USB-C (USB 3.1 gen 1), 3.5 mm audio",
+    battery:"39.7 Wh / 1000 cycles",
+    size:"12\"", era:"intel" },
+
+  { family:"MacBook", name:"MacBook (Retina, 12-inch, Early 2016)", year:2016,
+    modelId:"MacBook9,1", modelNumber:"A1534",
+    cpu:"Intel Core m3 1.1 / m5 1.2 / m7 1.3 GHz (Skylake)",
+    ram:"8 GB LPDDR3", storage:"256 / 512 GB PCIe SSD",
+    display:"12\" 2304×1440 Retina IPS",
+    ports:"1× USB-C (USB 3.1 gen 1), 3.5 mm audio",
+    battery:"41.4 Wh / 1000 cycles",
+    size:"12\"", era:"intel" },
+
+  { family:"MacBook", name:"MacBook (Retina, 12-inch, Mid 2017)", year:2017,
+    modelId:"MacBook10,1", modelNumber:"A1534",
+    cpu:"Intel Core m3 1.2 / i5 1.3 / i7 1.4 GHz (Kaby Lake)",
+    ram:"8 / 16 GB LPDDR3", storage:"256 / 512 GB / 1 TB PCIe SSD",
+    display:"12\" 2304×1440 Retina IPS",
+    ports:"1× USB-C (USB 3.1 gen 1), 3.5 mm audio",
+    battery:"41.4 Wh / 1000 cycles",
+    size:"12\"", era:"intel" },
+
+  /* ============================== MACBOOK PRO (Intel, pre-unibody) ============================== */
+  { family:"MacBook Pro", name:"MacBook Pro 15\" (Core Duo, Early 2006)", year:2006,
+    modelId:"MacBookPro1,1", modelNumber:"A1150",
+    cpu:"Intel Core Duo 1.67 / 1.83 / 2.0 / 2.16 GHz",
+    ram:"512 MB – 2 GB DDR2", storage:"80–120 GB 2.5\" HDD",
+    display:"15.4\" 1440×900 glossy/matte",
+    ports:"USB-A, FireWire 400, ExpressCard/34, DVI, Gigabit Ethernet, MagSafe 1",
+    battery:"60 Wh / 300 cycles",
+    size:"15\"", era:"intel" },
+
+  { family:"MacBook Pro", name:"MacBook Pro 17\" (Core Duo, Early 2006)", year:2006,
+    modelId:"MacBookPro1,2", modelNumber:"A1151",
+    cpu:"Intel Core Duo 2.16 GHz",
+    ram:"1–2 GB DDR2", storage:"120 GB HDD",
+    display:"17\" 1680×1050 matte",
+    ports:"USB-A, FireWire 400 & 800, ExpressCard/34, DVI, Gigabit Ethernet, MagSafe 1",
+    battery:"68 Wh / 300 cycles",
+    size:"17\"", era:"intel" },
+
+  { family:"MacBook Pro", name:"MacBook Pro 15\" / 17\" (Core 2 Duo, Late 2006)", year:2006,
+    modelId:"MacBookPro2,1 / MacBookPro2,2", modelNumber:"A1211 / A1212",
+    cpu:"Intel Core 2 Duo 2.16 / 2.33 GHz (Merom)",
+    ram:"1–3 GB DDR2", storage:"120–250 GB HDD",
+    display:"15.4\" 1440×900 or 17\" 1680×1050",
+    ports:"USB-A, FireWire 400 & 800, ExpressCard/34, DVI, Gigabit Ethernet, MagSafe 1",
+    battery:"60 Wh (15\") / 68 Wh (17\") / 300 cycles",
+    size:"15\"/17\"", era:"intel" },
+
+  { family:"MacBook Pro", name:"MacBook Pro 15\" / 17\" Santa Rosa (Mid 2007)", year:2007,
+    modelId:"MacBookPro3,1", modelNumber:"A1226 / A1229",
+    cpu:"Intel Core 2 Duo 2.2 / 2.4 / 2.6 GHz",
+    ram:"2–4 GB DDR2", storage:"120–250 GB HDD",
+    display:"15.4\" 1440×900 or 17\" 1680×1050 / 1920×1200",
+    ports:"USB-A, FireWire 400 & 800, ExpressCard/34, DVI, Gigabit Ethernet, MagSafe 1",
+    battery:"60 / 68 Wh / 300 cycles",
+    size:"15\"/17\"", era:"intel" },
+
+  { family:"MacBook Pro", name:"MacBook Pro 15\" / 17\" Penryn (Early 2008)", year:2008,
+    modelId:"MacBookPro4,1", modelNumber:"A1260 / A1261",
+    cpu:"Intel Core 2 Duo 2.4 / 2.5 / 2.6 GHz",
+    ram:"2–6 GB DDR2", storage:"200–300 GB HDD",
+    display:"15.4\" 1440×900 or 17\" 1920×1200",
+    ports:"USB-A, FireWire 400 & 800, ExpressCard/34, DVI, Gigabit Ethernet, MagSafe 1",
+    battery:"60 / 68 Wh / 300 cycles",
+    size:"15\"/17\"", era:"intel" },
+
+  /* ============================== MACBOOK PRO (Aluminum Unibody) ============================== */
+  { family:"MacBook Pro", name:"MacBook Pro 15\" Unibody (Late 2008)", year:2008,
+    modelId:"MacBookPro5,1", modelNumber:"A1286",
+    cpu:"Intel Core 2 Duo 2.4 / 2.53 / 2.8 GHz",
+    ram:"2–8 GB DDR3", storage:"250–320 GB HDD / SSD options",
+    display:"15.4\" 1440×900 LED-backlit glossy",
+    ports:"2× USB-A, FireWire 800, Mini DisplayPort, ExpressCard/34, Gigabit Ethernet, MagSafe 1",
+    battery:"50 Wh removable / 300 cycles",
+    size:"15\"", era:"intel" },
+
+  { family:"MacBook Pro", name:"MacBook Pro 17\" Unibody (Early 2009)", year:2009,
+    modelId:"MacBookPro5,2", modelNumber:"A1297",
+    cpu:"Intel Core 2 Duo 2.66 / 2.93 GHz",
+    ram:"4–8 GB DDR3", storage:"320–500 GB HDD",
+    display:"17\" 1920×1200 LED-backlit",
+    ports:"3× USB-A, FireWire 800, Mini DisplayPort, ExpressCard/34, Gigabit Ethernet, MagSafe 1",
+    battery:"95 Wh built-in / 1000 cycles",
+    size:"17\"", era:"intel" },
+
+  { family:"MacBook Pro", name:"MacBook Pro 13\" / 15\" / 17\" Unibody (Mid 2009, SD/FW800)", year:2009,
+    modelId:"MacBookPro5,3 / 5,4 / 5,5 / 5,2", modelNumber:"A1278 (13\") / A1286 (15\") / A1297 (17\")",
+    cpu:"Intel Core 2 Duo 2.26–3.06 GHz",
+    ram:"2–8 GB DDR3", storage:"160–500 GB HDD",
+    display:"13.3\" 1280×800 / 15.4\" 1440×900 / 17\" 1920×1200",
+    ports:"2× USB-A, FireWire 800, Mini DisplayPort, SD slot (13\"/15\"), ExpressCard/34 (17\"), MagSafe 1",
+    battery:"60 / 73 / 95 Wh built-in / 1000 cycles",
+    size:"13\"/15\"/17\"", era:"intel" },
+
+  { family:"MacBook Pro", name:"MacBook Pro 13\" / 15\" / 17\" Unibody (Mid 2010)", year:2010,
+    modelId:"MacBookPro7,1 / MacBookPro6,2 / MacBookPro6,1", modelNumber:"A1278 / A1286 / A1297",
+    cpu:"Intel Core 2 Duo (13\") or Core i5 / i7 (15\"/17\")",
+    ram:"4–8 GB DDR3", storage:"250–500 GB HDD / SSD",
+    display:"13\" 1280×800, 15\" 1440×900 (1680×1050 BTO), 17\" 1920×1200",
+    ports:"2× USB-A, FireWire 800, Mini DisplayPort, SD (13\"/15\"), ExpressCard/34 (17\"), MagSafe 1",
+    battery:"60 / 73 / 95 Wh / 1000 cycles",
+    size:"13\"/15\"/17\"", era:"intel" },
+
+  { family:"MacBook Pro", name:"MacBook Pro 13\" / 15\" / 17\" Thunderbolt (Early 2011)", year:2011,
+    modelId:"MacBookPro8,1 / 8,2 / 8,3", modelNumber:"A1278 / A1286 / A1297",
+    cpu:"Intel Core i5 / i7 (Sandy Bridge), 2.0–2.3 GHz quad",
+    ram:"4–8 GB DDR3 (16 GB unofficial)", storage:"320–750 GB HDD / SSD",
+    display:"13/15/17\" matte or glossy LED",
+    ports:"2× USB-A, Thunderbolt 1, FireWire 800, SD (13\"/15\"), ExpressCard/34 (17\"), MagSafe 1",
+    battery:"63.5 / 77.5 / 95 Wh / 1000 cycles",
+    size:"13\"/15\"/17\"", era:"intel" },
+
+  { family:"MacBook Pro", name:"MacBook Pro 13\" / 15\" / 17\" Thunderbolt (Late 2011)", year:2011,
+    modelId:"MacBookPro8,1 / 8,2 / 8,3", modelNumber:"A1278 / A1286 / A1297",
+    cpu:"Intel Core i5 / i7 2.4–2.5 GHz",
+    ram:"4–8 GB DDR3", storage:"500–750 GB HDD / SSD",
+    display:"13/15/17\" LED",
+    ports:"2× USB-A, Thunderbolt 1, FireWire 800, SD/ExpressCard, MagSafe 1",
+    battery:"63.5 / 77.5 / 95 Wh / 1000 cycles",
+    size:"13\"/15\"/17\"", era:"intel" },
+
+  { family:"MacBook Pro", name:"MacBook Pro 13\" / 15\" (Mid 2012, last optical-drive model)", year:2012,
+    modelId:"MacBookPro9,2 / MacBookPro9,1", modelNumber:"A1278 / A1286",
+    cpu:"Intel Core i5 / i7 (Ivy Bridge), 2.3–2.9 GHz",
+    ram:"4–8 GB DDR3", storage:"500–750 GB HDD",
+    display:"13\" 1280×800 / 15\" 1440×900 (1680×1050 BTO)",
+    ports:"2× USB 3, Thunderbolt 1, FireWire 800, SD, MagSafe 1, optical SuperDrive",
+    battery:"63.5 / 77.5 Wh / 1000 cycles",
+    size:"13\"/15\"", era:"intel" },
+
+  /* ============================== MACBOOK PRO RETINA (Pre-Touch Bar) ============================== */
+  { family:"MacBook Pro", name:"MacBook Pro 15\" Retina (Mid 2012)", year:2012,
+    modelId:"MacBookPro10,1", modelNumber:"A1398",
+    cpu:"Intel Core i7 quad 2.3 / 2.6 / 2.7 GHz",
+    ram:"8 / 16 GB DDR3L (soldered)", storage:"256 GB – 768 GB PCIe SSD",
+    display:"15.4\" 2880×1800 Retina",
+    ports:"2× USB 3, 2× Thunderbolt 1, HDMI, SDXC, MagSafe 2",
+    battery:"95 Wh / 1000 cycles",
+    size:"15\"", era:"intel" },
+
+  { family:"MacBook Pro", name:"MacBook Pro 13\" Retina (Late 2012 / Early 2013)", year:2012,
+    modelId:"MacBookPro10,2", modelNumber:"A1425",
+    cpu:"Intel Core i5 / i7 2.5–3.0 GHz",
+    ram:"8 / 16 GB DDR3L", storage:"128 GB – 768 GB PCIe SSD",
+    display:"13.3\" 2560×1600 Retina",
+    ports:"2× USB 3, 2× Thunderbolt 1, HDMI, SDXC, MagSafe 2",
+    battery:"74 Wh / 1000 cycles",
+    size:"13\"", era:"intel" },
+
+  { family:"MacBook Pro", name:"MacBook Pro 13\" / 15\" Retina (Late 2013 / Mid 2014)", year:2013,
+    modelId:"MacBookPro11,1 / 11,2 / 11,3", modelNumber:"A1502 / A1398",
+    cpu:"Intel Core i5 / i7 (Haswell), 2.0–2.8 GHz",
+    ram:"8 / 16 GB DDR3L", storage:"128 GB – 1 TB PCIe SSD",
+    display:"13\" 2560×1600 or 15\" 2880×1800 Retina",
+    ports:"2× USB 3, 2× Thunderbolt 2, HDMI, SDXC, MagSafe 2",
+    battery:"71.8 / 95 Wh / 1000 cycles",
+    size:"13\"/15\"", era:"intel" },
+
+  { family:"MacBook Pro", name:"MacBook Pro 13\" Retina (Early 2015) with Force Touch", year:2015,
+    modelId:"MacBookPro12,1", modelNumber:"A1502",
+    cpu:"Intel Core i5 / i7 (Broadwell), 2.7 / 2.9 / 3.1 GHz",
+    ram:"8 / 16 GB DDR3L", storage:"128 GB – 1 TB PCIe SSD",
+    display:"13.3\" 2560×1600 Retina",
+    ports:"2× USB 3, 2× Thunderbolt 2, HDMI, SDXC, MagSafe 2",
+    battery:"74.9 Wh / 1000 cycles",
+    size:"13\"", era:"intel" },
+
+  { family:"MacBook Pro", name:"MacBook Pro 15\" Retina (Mid 2015) with Force Touch", year:2015,
+    modelId:"MacBookPro11,4 / MacBookPro11,5", modelNumber:"A1398",
+    cpu:"Intel Core i7 quad 2.2 / 2.5 / 2.8 GHz (Haswell, refresh)",
+    ram:"16 GB DDR3L", storage:"256 GB – 1 TB PCIe SSD",
+    display:"15.4\" 2880×1800 Retina",
+    ports:"2× USB 3, 2× Thunderbolt 2, HDMI, SDXC, MagSafe 2",
+    battery:"99.5 Wh / 1000 cycles",
+    size:"15\"", era:"intel" },
+
+  /* ============================== MACBOOK PRO (Touch Bar / Butterfly era) ============================== */
+  { family:"MacBook Pro", name:"MacBook Pro 13\" Function Keys (Late 2016 / Mid 2017)", year:2016,
+    modelId:"MacBookPro13,1 / MacBookPro14,1", modelNumber:"A1708",
+    cpu:"Intel Core i5 / i7 (Skylake/Kaby Lake), 2.0–2.5 GHz dual",
+    ram:"8 / 16 GB LPDDR3", storage:"128 GB – 1 TB PCIe SSD",
+    display:"13.3\" 2560×1600 Retina, P3, 500 nit",
+    ports:"2× Thunderbolt 3 / USB-C, 3.5 mm",
+    battery:"54.5 Wh / 1000 cycles",
+    size:"13\"", era:"intel" },
+
+  { family:"MacBook Pro", name:"MacBook Pro 13\" Touch Bar (Late 2016 / Mid 2017)", year:2016,
+    modelId:"MacBookPro13,2 / MacBookPro14,2", modelNumber:"A1706",
+    cpu:"Intel Core i5 / i7 dual, 2.9–3.5 GHz",
+    ram:"8 / 16 GB LPDDR3", storage:"256 GB – 1 TB PCIe SSD",
+    display:"13.3\" 2560×1600 Retina, P3, 500 nit",
+    ports:"4× Thunderbolt 3 / USB-C, 3.5 mm, Touch Bar + Touch ID",
+    battery:"49.2 Wh / 1000 cycles",
+    size:"13\"", era:"intel" },
+
+  { family:"MacBook Pro", name:"MacBook Pro 15\" Touch Bar (Late 2016 / Mid 2017)", year:2016,
+    modelId:"MacBookPro13,3 / MacBookPro14,3", modelNumber:"A1707",
+    cpu:"Intel Core i7 quad 2.6 / 2.7 / 2.8 / 2.9 / 3.1 GHz",
+    ram:"16 GB LPDDR3", storage:"256 GB – 2 TB PCIe SSD",
+    display:"15.4\" 2880×1800 Retina, P3, 500 nit",
+    ports:"4× Thunderbolt 3 / USB-C, 3.5 mm, Touch Bar + Touch ID",
+    battery:"76 Wh / 1000 cycles",
+    size:"15\"", era:"intel" },
+
+  { family:"MacBook Pro", name:"MacBook Pro 13\" Touch Bar (Mid 2018 / Mid 2019)", year:2018,
+    modelId:"MacBookPro15,2", modelNumber:"A1989",
+    cpu:"Intel Core i5 / i7 quad (Coffee Lake), 2.3–2.8 GHz",
+    ram:"8 / 16 GB LPDDR3", storage:"256 GB – 2 TB PCIe SSD",
+    display:"13.3\" 2560×1600 Retina, P3, True Tone, 500 nit",
+    ports:"4× Thunderbolt 3 / USB-C, 3.5 mm, Touch Bar + Touch ID",
+    battery:"58 Wh / 1000 cycles",
+    size:"13\"", era:"intel" },
+
+  { family:"MacBook Pro", name:"MacBook Pro 15\" Touch Bar (Mid 2018 / Mid 2019)", year:2018,
+    modelId:"MacBookPro15,1 / MacBookPro15,3 (Vega)", modelNumber:"A1990",
+    cpu:"Intel Core i7 / i9 hex/octa (Coffee Lake), 2.2–2.9 GHz",
+    ram:"16 / 32 GB DDR4", storage:"256 GB – 4 TB PCIe SSD",
+    display:"15.4\" 2880×1800 Retina, P3, True Tone, 500 nit",
+    ports:"4× Thunderbolt 3 / USB-C, 3.5 mm, Touch Bar + Touch ID",
+    battery:"83.6 Wh / 1000 cycles",
+    size:"15\"", era:"intel" },
+
+  { family:"MacBook Pro", name:"MacBook Pro 13\" 2× TB3 (Mid 2019 / 2020 entry)", year:2019,
+    modelId:"MacBookPro15,4 / MacBookPro16,3", modelNumber:"A2159 / A2289",
+    cpu:"Intel Core i5 / i7 quad (Amber Lake), 1.4–1.7 GHz",
+    ram:"8 / 16 GB LPDDR3", storage:"128 GB – 1 TB PCIe SSD",
+    display:"13.3\" 2560×1600 Retina, P3, True Tone",
+    ports:"2× Thunderbolt 3 / USB-C, 3.5 mm, Touch Bar + Touch ID",
+    battery:"58.2 Wh / 1000 cycles",
+    size:"13\"", era:"intel" },
+
+  { family:"MacBook Pro", name:"MacBook Pro 13\" 4× TB3 (Mid 2020, Magic Keyboard)", year:2020,
+    modelId:"MacBookPro16,2", modelNumber:"A2251",
+    cpu:"Intel Core i5 / i7 quad (Ice Lake), 2.0 / 2.3 GHz",
+    ram:"16 / 32 GB LPDDR4X", storage:"512 GB – 4 TB PCIe SSD",
+    display:"13.3\" 2560×1600 Retina, P3, True Tone",
+    ports:"4× Thunderbolt 3 / USB-C, 3.5 mm, Touch Bar + Touch ID",
+    battery:"58.2 Wh / 1000 cycles",
+    size:"13\"", era:"intel" },
+
+  { family:"MacBook Pro", name:"MacBook Pro 16\" (Late 2019 / Mid 2020 5600M)", year:2019,
+    modelId:"MacBookPro16,1 / MacBookPro16,4", modelNumber:"A2141",
+    cpu:"Intel Core i7 / i9 hex/octa (Coffee Lake R), 2.3–2.4 GHz",
+    ram:"16 – 64 GB DDR4", storage:"512 GB – 8 TB PCIe SSD",
+    display:"16\" 3072×1920 Retina, P3, True Tone, 500 nit",
+    ports:"4× Thunderbolt 3 / USB-C, 3.5 mm, Touch Bar + Touch ID",
+    battery:"99.8 Wh / 1000 cycles",
+    size:"16\"", era:"intel" },
+
+  /* ============================== MACBOOK PRO (Apple Silicon) ============================== */
+  { family:"MacBook Pro", name:"MacBook Pro 13\" (M1, Late 2020) — Touch Bar", year:2020,
+    modelId:"MacBookPro17,1", modelNumber:"A2338",
+    cpu:"Apple M1 (8-core CPU / 8-core GPU)",
+    ram:"8 / 16 GB unified", storage:"256 GB – 2 TB",
+    display:"13.3\" 2560×1600 Retina, P3, True Tone",
+    ports:"2× Thunderbolt 3 / USB-4, 3.5 mm, Touch Bar + Touch ID",
+    battery:"58.2 Wh / 1000 cycles",
+    size:"13\"", era:"silicon" },
+
+  { family:"MacBook Pro", name:"MacBook Pro 14\" (M1 Pro / M1 Max, 2021)", year:2021,
+    modelId:"MacBookPro18,3 (Pro) / MacBookPro18,4 (Max)", modelNumber:"A2442",
+    cpu:"M1 Pro 8/10-core CPU + 14/16-core GPU · M1 Max 10-core CPU + 24/32-core GPU",
+    ram:"16 / 32 / 64 GB unified", storage:"512 GB – 8 TB",
+    display:"14.2\" 3024×1964 Liquid Retina XDR mini-LED, 120 Hz ProMotion, 1000/1600 nit",
+    ports:"3× TB4, HDMI 2.0, SDXC, MagSafe 3, 3.5 mm (high-impedance)",
+    battery:"70 Wh / 1000 cycles",
+    size:"14\"", era:"silicon" },
+
+  { family:"MacBook Pro", name:"MacBook Pro 16\" (M1 Pro / M1 Max, 2021)", year:2021,
+    modelId:"MacBookPro18,1 (Pro) / MacBookPro18,2 (Max)", modelNumber:"A2485",
+    cpu:"M1 Pro 10-core CPU + 16-core GPU · M1 Max 10-core CPU + 24/32-core GPU",
+    ram:"16 / 32 / 64 GB unified", storage:"512 GB – 8 TB",
+    display:"16.2\" 3456×2234 Liquid Retina XDR mini-LED, 120 Hz ProMotion, 1000/1600 nit",
+    ports:"3× TB4, HDMI 2.0, SDXC, MagSafe 3, 3.5 mm (high-impedance)",
+    battery:"100 Wh / 1000 cycles",
+    size:"16\"", era:"silicon" },
+
+  { family:"MacBook Pro", name:"MacBook Pro 13\" (M2, 2022) — Touch Bar (final Touch Bar model)", year:2022,
+    modelId:"Mac14,7", modelNumber:"A2338",
+    cpu:"Apple M2 (8-core CPU / 10-core GPU)",
+    ram:"8 / 16 / 24 GB unified", storage:"256 GB – 2 TB",
+    display:"13.3\" 2560×1600 Retina, P3, True Tone",
+    ports:"2× Thunderbolt / USB-4, 3.5 mm, Touch Bar + Touch ID",
+    battery:"58.2 Wh / 1000 cycles",
+    size:"13\"", era:"silicon" },
+
+  { family:"MacBook Pro", name:"MacBook Pro 14\" (M2 Pro / M2 Max, 2023)", year:2023,
+    modelId:"Mac14,9 (Pro) / Mac14,5 (Max)", modelNumber:"A2779",
+    cpu:"M2 Pro 10/12-core + 16/19-core GPU · M2 Max 12-core + 30/38-core GPU",
+    ram:"16 / 32 / 64 / 96 GB unified", storage:"512 GB – 8 TB",
+    display:"14.2\" Liquid Retina XDR mini-LED, 120 Hz ProMotion",
+    ports:"3× TB4, HDMI 2.1, SDXC, MagSafe 3, 3.5 mm",
+    battery:"70 Wh / 1000 cycles",
+    size:"14\"", era:"silicon" },
+
+  { family:"MacBook Pro", name:"MacBook Pro 16\" (M2 Pro / M2 Max, 2023)", year:2023,
+    modelId:"Mac14,10 (Pro) / Mac14,6 (Max)", modelNumber:"A2780",
+    cpu:"M2 Pro 12-core + 19-core GPU · M2 Max 12-core + 30/38-core GPU",
+    ram:"16 – 96 GB unified", storage:"512 GB – 8 TB",
+    display:"16.2\" Liquid Retina XDR mini-LED, 120 Hz ProMotion",
+    ports:"3× TB4, HDMI 2.1, SDXC, MagSafe 3, 3.5 mm",
+    battery:"100 Wh / 1000 cycles",
+    size:"16\"", era:"silicon" },
+
+  { family:"MacBook Pro", name:"MacBook Pro 14\" (M3, Late 2023)", year:2023,
+    modelId:"Mac15,3", modelNumber:"A2918",
+    cpu:"Apple M3 (8-core CPU / 10-core GPU)",
+    ram:"8 / 16 / 24 GB unified", storage:"512 GB – 2 TB",
+    display:"14.2\" Liquid Retina XDR mini-LED, 120 Hz ProMotion",
+    ports:"2× TB / USB-4, HDMI 2.1, SDXC, MagSafe 3, 3.5 mm",
+    battery:"70 Wh / 1000 cycles",
+    size:"14\"", era:"silicon" },
+
+  { family:"MacBook Pro", name:"MacBook Pro 14\" (M3 Pro / M3 Max, Late 2023)", year:2023,
+    modelId:"Mac15,6 (Pro) / Mac15,8 / Mac15,10 (Max)", modelNumber:"A2992",
+    cpu:"M3 Pro 11/12-core + 14/18-core GPU · M3 Max 14/16-core + 30/40-core GPU",
+    ram:"18 / 36 / 64 / 96 / 128 GB unified", storage:"512 GB – 8 TB",
+    display:"14.2\" Liquid Retina XDR mini-LED, 120 Hz ProMotion",
+    ports:"3× TB4, HDMI 2.1, SDXC, MagSafe 3, 3.5 mm",
+    battery:"70 Wh / 1000 cycles",
+    size:"14\"", era:"silicon" },
+
+  { family:"MacBook Pro", name:"MacBook Pro 16\" (M3 Pro / M3 Max, Late 2023)", year:2023,
+    modelId:"Mac15,7 (Pro) / Mac15,9 / Mac15,11 (Max)", modelNumber:"A2991",
+    cpu:"M3 Pro 12-core + 18-core GPU · M3 Max 14/16-core + 30/40-core GPU",
+    ram:"18 – 128 GB unified", storage:"512 GB – 8 TB",
+    display:"16.2\" Liquid Retina XDR mini-LED, 120 Hz ProMotion",
+    ports:"3× TB4, HDMI 2.1, SDXC, MagSafe 3, 3.5 mm",
+    battery:"100 Wh / 1000 cycles",
+    size:"16\"", era:"silicon" },
+
+  { family:"MacBook Pro", name:"MacBook Pro 14\" (M4, 2024)", year:2024,
+    modelId:"Mac16,1", modelNumber:"A3112",
+    cpu:"Apple M4 (10-core CPU / 10-core GPU)",
+    ram:"16 / 24 / 32 GB unified", storage:"512 GB – 2 TB",
+    display:"14.2\" Liquid Retina XDR mini-LED, 120 Hz ProMotion, 1000 nit SDR",
+    ports:"3× TB4, HDMI 2.1, SDXC, MagSafe 3, 3.5 mm",
+    battery:"72.4 Wh / 1000 cycles",
+    size:"14\"", era:"silicon" },
+
+  { family:"MacBook Pro", name:"MacBook Pro 14\" (M4 Pro / M4 Max, 2024)", year:2024,
+    modelId:"Mac16,8 (Pro) / Mac16,6 (Max)", modelNumber:"A3401 / A3185",
+    cpu:"M4 Pro 12/14-core + 16/20-core GPU · M4 Max 14/16-core + 32/40-core GPU",
+    ram:"24 / 48 / 64 / 128 GB unified", storage:"512 GB – 8 TB",
+    display:"14.2\" Liquid Retina XDR mini-LED, 120 Hz ProMotion, Thunderbolt 5 on Max",
+    ports:"3× TB5 (Max) or TB4 (Pro), HDMI 2.1, SDXC, MagSafe 3, 3.5 mm",
+    battery:"72.4 Wh / 1000 cycles",
+    size:"14\"", era:"silicon" },
+
+  { family:"MacBook Pro", name:"MacBook Pro 16\" (M4 Pro / M4 Max, 2024)", year:2024,
+    modelId:"Mac16,7 (Pro) / Mac16,5 (Max)", modelNumber:"A3403 / A3186",
+    cpu:"M4 Pro 14-core + 20-core GPU · M4 Max 14/16-core + 32/40-core GPU",
+    ram:"24 – 128 GB unified", storage:"512 GB – 8 TB",
+    display:"16.2\" Liquid Retina XDR mini-LED, 120 Hz ProMotion",
+    ports:"3× TB5 (Max) or TB4 (Pro), HDMI 2.1, SDXC, MagSafe 3, 3.5 mm",
+    battery:"100 Wh / 1000 cycles",
+    size:"16\"", era:"silicon" },
+
+  { family:"MacBook Pro", name:"MacBook Pro 14\" (M5, 2025)", year:2025,
+    modelId:"Mac17,2", modelNumber:"A3434",
+    cpu:"Apple M5 (10-core CPU / 10-core GPU, 16-core Neural Engine)",
+    ram:"16 / 24 / 32 GB unified", storage:"512 GB / 1 TB",
+    display:"14.2\" Liquid Retina XDR mini-LED, 120 Hz ProMotion",
+    ports:"3× TB4, HDMI 2.1, SDXC, MagSafe 3, 3.5 mm",
+    battery:"72.4 Wh / 1000 cycles",
+    size:"14\"", era:"silicon" },
+
+  { family:"MacBook Pro", name:"MacBook Pro 14\" (M5 Pro / M5 Max, 2026)", year:2026,
+    modelId:"Mac17,9 (Pro) / Mac17,7 (Max)", modelNumber:"A3428 family",
+    cpu:"M5 Pro 15/18-core + 16/20-core GPU · M5 Max 18-core + 32/40-core GPU",
+    ram:"24 – 128 GB unified", storage:"512 GB – 8 TB",
+    display:"14.2\" Liquid Retina XDR mini-LED, 120 Hz ProMotion",
+    ports:"3× TB5, HDMI 2.1, SDXC, MagSafe 3, 3.5 mm",
+    battery:"72.4 Wh / 1000 cycles",
+    size:"14\"", era:"silicon" },
+
+  { family:"MacBook Pro", name:"MacBook Pro 16\" (M5 Pro / M5 Max, 2026)", year:2026,
+    modelId:"Mac17,8 (Pro) / Mac17,6 (Max)", modelNumber:"A3428",
+    cpu:"M5 Pro 18-core + 20-core GPU · M5 Max 18-core + 32/40-core GPU",
+    ram:"24 – 128 GB unified", storage:"512 GB – 8 TB",
+    display:"16.2\" Liquid Retina XDR mini-LED, 120 Hz ProMotion",
+    ports:"3× TB5, HDMI 2.1, SDXC, MagSafe 3, 3.5 mm",
+    battery:"100 Wh / 1000 cycles",
+    size:"16\"", era:"silicon" },
+
+  /* ============================== MACBOOK AIR ============================== */
+  { family:"MacBook Air", name:"MacBook Air 13\" (Original, Early 2008)", year:2008,
+    modelId:"MacBookAir1,1", modelNumber:"A1237",
+    cpu:"Intel Core 2 Duo 1.6 / 1.8 GHz (Merom, custom ULV)",
+    ram:"2 GB DDR2 (soldered)", storage:"80 GB PATA HDD or 64 GB SSD",
+    display:"13.3\" 1280×800 LED",
+    ports:"1× USB-A, micro-DVI, 3.5 mm (under a flip door), MagSafe 1",
+    battery:"37 Wh / 300 cycles",
+    size:"13\"", era:"intel" },
+
+  { family:"MacBook Air", name:"MacBook Air 13\" (Late 2008 / Mid 2009)", year:2008,
+    modelId:"MacBookAir2,1", modelNumber:"A1304",
+    cpu:"Intel Core 2 Duo 1.6 / 1.86 / 2.13 GHz",
+    ram:"2 GB DDR3", storage:"120 GB HDD or 128 GB SSD",
+    display:"13.3\" 1280×800 LED",
+    ports:"1× USB-A, Mini DisplayPort, 3.5 mm, MagSafe 1",
+    battery:"40 Wh / 300 cycles",
+    size:"13\"", era:"intel" },
+
+  { family:"MacBook Air", name:"MacBook Air 11\" / 13\" (Late 2010) — wedge era", year:2010,
+    modelId:"MacBookAir3,1 (11\") / MacBookAir3,2 (13\")", modelNumber:"A1370 / A1369",
+    cpu:"Intel Core 2 Duo 1.4 / 1.6 / 1.86 / 2.13 GHz",
+    ram:"2 / 4 GB DDR3", storage:"64 / 128 / 256 GB SSD",
+    display:"11.6\" 1366×768 or 13.3\" 1440×900 LED",
+    ports:"2× USB-A, Mini DisplayPort, SDXC (13\"), MagSafe 1",
+    battery:"35 / 50 Wh / 1000 cycles",
+    size:"11\"/13\"", era:"intel" },
+
+  { family:"MacBook Air", name:"MacBook Air 11\" / 13\" (Mid 2011) — Thunderbolt", year:2011,
+    modelId:"MacBookAir4,1 (11\") / MacBookAir4,2 (13\")", modelNumber:"A1370 / A1369",
+    cpu:"Intel Core i5 / i7 (Sandy Bridge), 1.6–1.8 GHz",
+    ram:"2 / 4 GB DDR3", storage:"64 / 128 / 256 GB SSD",
+    display:"11.6\" 1366×768 or 13.3\" 1440×900 LED",
+    ports:"2× USB-A, Thunderbolt 1, SDXC (13\"), MagSafe 2",
+    battery:"35 / 50 Wh / 1000 cycles",
+    size:"11\"/13\"", era:"intel" },
+
+  { family:"MacBook Air", name:"MacBook Air 11\" / 13\" (Mid 2012)", year:2012,
+    modelId:"MacBookAir5,1 (11\") / MacBookAir5,2 (13\")", modelNumber:"A1465 / A1466",
+    cpu:"Intel Core i5 / i7 (Ivy Bridge), 1.7–2.0 GHz",
+    ram:"4 / 8 GB DDR3L", storage:"64 / 128 / 256 / 512 GB SSD",
+    display:"11.6\" 1366×768 or 13.3\" 1440×900 LED",
+    ports:"2× USB 3, Thunderbolt 1, SDXC (13\"), MagSafe 2",
+    battery:"35 / 50 Wh / 1000 cycles",
+    size:"11\"/13\"", era:"intel" },
+
+  { family:"MacBook Air", name:"MacBook Air 11\" / 13\" (Mid 2013 / Early 2014 / Early 2015 / 2017)", year:2013,
+    modelId:"MacBookAir6,1 (11\") / MacBookAir6,2 (13\") / MacBookAir7,1 / MacBookAir7,2", modelNumber:"A1465 / A1466",
+    cpu:"Intel Core i5 / i7 (Haswell → Broadwell), 1.3–2.2 GHz",
+    ram:"4 / 8 GB LPDDR3", storage:"128 / 256 / 512 GB / 1 TB PCIe SSD",
+    display:"11.6\" 1366×768 or 13.3\" 1440×900 LED",
+    ports:"2× USB 3, Thunderbolt 1 (later Thunderbolt 2), SDXC (13\"), MagSafe 2",
+    battery:"38 / 54 Wh / 1000 cycles",
+    size:"11\"/13\"", era:"intel" },
+
+  { family:"MacBook Air", name:"MacBook Air 13\" Retina (Late 2018 / 2019)", year:2018,
+    modelId:"MacBookAir8,1 / MacBookAir8,2", modelNumber:"A1932",
+    cpu:"Intel Core i5 dual (Amber Lake), 1.6 GHz",
+    ram:"8 / 16 GB LPDDR3", storage:"128 GB – 1.5 TB PCIe SSD",
+    display:"13.3\" 2560×1600 Retina, P3 (no P3 on 2018), True Tone",
+    ports:"2× Thunderbolt 3 / USB-C, 3.5 mm, Touch ID",
+    battery:"50.3 Wh / 1000 cycles",
+    size:"13\"", era:"intel" },
+
+  { family:"MacBook Air", name:"MacBook Air 13\" Retina (2020, Scissor / Magic Keyboard)", year:2020,
+    modelId:"MacBookAir9,1", modelNumber:"A2179",
+    cpu:"Intel Core i3 dual / i5 / i7 quad (Ice Lake), 1.1–1.2 GHz",
+    ram:"8 / 16 GB LPDDR4X", storage:"256 GB – 2 TB PCIe SSD",
+    display:"13.3\" 2560×1600 Retina, P3, True Tone",
+    ports:"2× Thunderbolt 3 / USB-C, 3.5 mm, Touch ID",
+    battery:"49.9 Wh / 1000 cycles",
+    size:"13\"", era:"intel" },
+
+  { family:"MacBook Air", name:"MacBook Air 13\" (M1, Late 2020) — last wedge design", year:2020,
+    modelId:"MacBookAir10,1", modelNumber:"A2337",
+    cpu:"Apple M1 (8-core CPU / 7- or 8-core GPU)",
+    ram:"8 / 16 GB unified", storage:"256 GB – 2 TB",
+    display:"13.3\" 2560×1600 Retina, P3, True Tone",
+    ports:"2× Thunderbolt / USB-4, 3.5 mm, Touch ID",
+    battery:"49.9 Wh / 1000 cycles",
+    size:"13\"", era:"silicon" },
+
+  { family:"MacBook Air", name:"MacBook Air 13\" (M2, 2022) — flat design", year:2022,
+    modelId:"Mac14,2", modelNumber:"A2681",
+    cpu:"Apple M2 (8-core CPU / 8- or 10-core GPU)",
+    ram:"8 / 16 / 24 GB unified", storage:"256 GB – 2 TB",
+    display:"13.6\" 2560×1664 Liquid Retina, P3, True Tone, 500 nit",
+    ports:"2× Thunderbolt / USB-4, MagSafe 3, 3.5 mm (high-impedance), Touch ID",
+    battery:"52.6 Wh / 1000 cycles",
+    size:"13\"", era:"silicon" },
+
+  { family:"MacBook Air", name:"MacBook Air 15\" (M2, 2023)", year:2023,
+    modelId:"Mac14,15", modelNumber:"A2941",
+    cpu:"Apple M2 (8-core CPU / 10-core GPU)",
+    ram:"8 / 16 / 24 GB unified", storage:"256 GB – 2 TB",
+    display:"15.3\" 2880×1864 Liquid Retina, P3, True Tone, 500 nit",
+    ports:"2× Thunderbolt / USB-4, MagSafe 3, 3.5 mm, Touch ID",
+    battery:"66.5 Wh / 1000 cycles",
+    size:"15\"", era:"silicon" },
+
+  { family:"MacBook Air", name:"MacBook Air 13\" (M3, 2024)", year:2024,
+    modelId:"Mac15,12", modelNumber:"A3113",
+    cpu:"Apple M3 (8-core CPU / 8- or 10-core GPU)",
+    ram:"8 / 16 / 24 GB unified", storage:"256 GB – 2 TB",
+    display:"13.6\" 2560×1664 Liquid Retina, P3, True Tone",
+    ports:"2× Thunderbolt / USB-4, MagSafe 3, 3.5 mm, Touch ID",
+    battery:"52.6 Wh / 1000 cycles",
+    size:"13\"", era:"silicon" },
+
+  { family:"MacBook Air", name:"MacBook Air 15\" (M3, 2024)", year:2024,
+    modelId:"Mac15,13", modelNumber:"A3114",
+    cpu:"Apple M3 (8-core CPU / 10-core GPU)",
+    ram:"8 / 16 / 24 GB unified", storage:"256 GB – 2 TB",
+    display:"15.3\" 2880×1864 Liquid Retina, P3, True Tone",
+    ports:"2× Thunderbolt / USB-4, MagSafe 3, 3.5 mm, Touch ID",
+    battery:"66.5 Wh / 1000 cycles",
+    size:"15\"", era:"silicon" },
+
+  { family:"MacBook Air", name:"MacBook Air 13\" (M4, 2025)", year:2025,
+    modelId:"Mac16,12", modelNumber:"A3240",
+    cpu:"Apple M4 (10-core CPU / 8- or 10-core GPU)",
+    ram:"16 / 24 / 32 GB unified", storage:"256 GB – 2 TB",
+    display:"13.6\" 2560×1664 Liquid Retina, P3, True Tone",
+    ports:"2× Thunderbolt 4, MagSafe 3, 3.5 mm, Touch ID",
+    battery:"53.8 Wh / 1000 cycles",
+    size:"13\"", era:"silicon" },
+
+  { family:"MacBook Air", name:"MacBook Air 15\" (M4, 2025)", year:2025,
+    modelId:"Mac16,13", modelNumber:"A3241",
+    cpu:"Apple M4 (10-core CPU / 10-core GPU)",
+    ram:"16 / 24 / 32 GB unified", storage:"256 GB – 2 TB",
+    display:"15.3\" 2880×1864 Liquid Retina, P3, True Tone",
+    ports:"2× Thunderbolt 4, MagSafe 3, 3.5 mm, Touch ID",
+    battery:"66.5 Wh / 1000 cycles",
+    size:"15\"", era:"silicon" },
+
+  { family:"MacBook Air", name:"MacBook Air 13\" (M5, 2026)", year:2026,
+    modelId:"Mac17,3", modelNumber:"A3242 (family)",
+    cpu:"Apple M5 (10-core CPU / 8- or 10-core GPU)",
+    ram:"16 / 24 / 32 GB unified", storage:"256 GB – 2 TB",
+    display:"13.6\" 2560×1664 Liquid Retina, P3, True Tone",
+    ports:"2× Thunderbolt 4, MagSafe 3, 3.5 mm, Touch ID",
+    battery:"53.8 Wh / 1000 cycles",
+    size:"13\"", era:"silicon" },
+
+  { family:"MacBook Air", name:"MacBook Air 15\" (M5, 2026)", year:2026,
+    modelId:"Mac17,4", modelNumber:"A3243 (family)",
+    cpu:"Apple M5 (10-core CPU / 10-core GPU)",
+    ram:"16 / 24 / 32 GB unified", storage:"256 GB – 2 TB",
+    display:"15.3\" 2880×1864 Liquid Retina, P3, True Tone",
+    ports:"2× Thunderbolt 4, MagSafe 3, 3.5 mm, Touch ID",
+    battery:"66.5 Wh / 1000 cycles",
+    size:"15\"", era:"silicon" },
+];
+
+// --- rendering ---------------------------------------------------------------
+const tb = document.getElementById('tb');
+const countEl = document.getElementById('count');
+const q = document.getElementById('q');
+const fam = document.getElementById('family');
+const era = document.getElementById('era');
+const size = document.getElementById('size');
+
+let sortKey = 'year';
+let sortDir = 1; // 1 asc, -1 desc
+
+function escapeHtml(s) {
+  return (s ?? '').toString()
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function highlight(text, needle) {
+  if (!needle) return escapeHtml(text);
+  const re = new RegExp('(' + needle.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + ')', 'ig');
+  return escapeHtml(text).replace(re, '<span class="hl">$1</span>');
+}
+
+function rowMatches(row, terms, famVal, eraVal, sizeVal) {
+  if (famVal && row.family !== famVal) return false;
+  if (eraVal && row.era !== eraVal) return false;
+  if (sizeVal && !(row.size || '').includes(sizeVal)) return false;
+  if (!terms.length) return true;
+  const blob = [row.name, row.modelId, row.modelNumber, row.cpu, row.ram, row.storage,
+                row.display, row.ports, row.battery, row.year, row.family].join(' ').toLowerCase();
+  return terms.every(t => blob.includes(t));
+}
+
+function render() {
+  const needle = q.value.trim().toLowerCase();
+  const terms = needle ? needle.split(/\s+/) : [];
+  const famVal = fam.value;
+  const eraVal = era.value;
+  const sizeVal = size.value;
+
+  const filtered = DATA.filter(r => rowMatches(r, terms, famVal, eraVal, sizeVal));
+
+  filtered.sort((a,b) => {
+    const av = a[sortKey], bv = b[sortKey];
+    if (typeof av === 'number' && typeof bv === 'number') return (av - bv) * sortDir;
+    return String(av).localeCompare(String(bv), undefined, {numeric:true}) * sortDir;
+  });
+
+  countEl.textContent = `${filtered.length} of ${DATA.length} models`;
+
+  const rows = filtered.map(r => `
+    <tr>
+      <td class="name">${highlight(r.name, needle)}</td>
+      <td>${r.year}</td>
+      <td class="modelid">${highlight(r.modelId, needle)}</td>
+      <td class="modelnum">${highlight(r.modelNumber, needle)}</td>
+      <td class="cpu">${highlight(r.cpu, needle)}</td>
+      <td class="ram">${highlight(r.ram, needle)}</td>
+      <td class="storage">${highlight(r.storage, needle)}</td>
+      <td class="display">${highlight(r.display, needle)}</td>
+      <td class="ports">${highlight(r.ports, needle)}</td>
+      <td class="battery">${highlight(r.battery, needle)}</td>
+    </tr>
+  `);
+  tb.innerHTML = rows.join('');
+}
+
+// sorting
+document.querySelectorAll('thead th').forEach(th => {
+  th.addEventListener('click', () => {
+    const k = th.dataset.key;
+    if (sortKey === k) sortDir *= -1; else { sortKey = k; sortDir = 1; }
+    document.querySelectorAll('thead th .arrow').forEach(a => a.textContent = '');
+    th.querySelector('.arrow') && (th.querySelector('.arrow').textContent = sortDir === 1 ? '▴' : '▾');
+    // ensure arrow span exists
+    if (!th.querySelector('.arrow')) {
+      const s = document.createElement('span'); s.className = 'arrow'; s.textContent = sortDir === 1 ? '▴' : '▾';
+      th.appendChild(s);
+    }
+    render();
+    saveState();
+  });
+});
+
+[q, fam, era, size].forEach(el => el.addEventListener('input', () => { render(); saveState(); }));
+
+// persist filter state across reloads
+function saveState() {
+  try {
+    localStorage.setItem('mbid-state', JSON.stringify({
+      q: q.value, fam: fam.value, era: era.value, size: size.value, sortKey, sortDir
+    }));
+  } catch (_) {}
+}
+function loadState() {
+  try {
+    const s = JSON.parse(localStorage.getItem('mbid-state') || '{}');
+    if (s.q) q.value = s.q;
+    if (s.fam) fam.value = s.fam;
+    if (s.era) era.value = s.era;
+    if (s.size) size.value = s.size;
+    if (s.sortKey) sortKey = s.sortKey;
+    if (s.sortDir) sortDir = s.sortDir;
+  } catch (_) {}
+}
+
+loadState();
+render();
+
+// --- Tab switching ----------------------------------------------------------
+const tabButtons = document.querySelectorAll('nav.tabs .tab');
+const tabPanels  = document.querySelectorAll('.tab-panel');
+const controlsEl = document.getElementById('controls');
+function setTab(name) {
+  tabButtons.forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+  tabPanels.forEach(p => { p.hidden = (p.dataset.panel !== name); });
+  // Search controls only make sense on the Models tab
+  controlsEl.classList.toggle('hidden', name !== 'models');
+  try { localStorage.setItem('mbid-tab', name); } catch (_) {}
+}
+tabButtons.forEach(b => b.addEventListener('click', () => setTab(b.dataset.tab)));
+let savedTab = null;
+try { savedTab = localStorage.getItem('mbid-tab'); } catch (_) {}
+setTab(['terminal','sizes'].includes(savedTab) ? savedTab : 'models');
+
+// --- RAM size reference -----------------------------------------------------
+const RAM_SIZES = [1, 2, 3, 4, 6, 8, 12, 16, 18, 24, 32, 36, 48, 64, 96, 128];
+document.querySelector('#ramTable tbody').innerHTML = RAM_SIZES.map(gb => {
+  const bytes = gb * (2 ** 30);
+  return `<tr><td class="num">${bytes.toLocaleString('en-US')}</td><td>${gb} GB</td></tr>`;
+}).join('');
+</script>
+</body>
+</html>
