@@ -50,9 +50,9 @@
   nav.tabs .tab {
     background: transparent; color: var(--muted); border: 0; border-bottom: 2px solid transparent;
     padding: 10px 16px; margin-bottom: -1px; font: inherit; font-size: 13px; cursor: pointer;
-    letter-spacing: 0.01em;
+    letter-spacing: 0.01em; text-decoration: none;
   }
-  nav.tabs .tab:hover { color: var(--text); }
+  nav.tabs .tab:hover { color: var(--text); text-decoration: none; }
   nav.tabs .tab.active { color: var(--text); border-bottom-color: var(--accent); font-weight: 600; }
   .tab-panel[hidden] { display: none !important; }
   .controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 12px; }
@@ -134,6 +134,7 @@ code { background: var(--panel-2); padding: 1px 5px; border-radius: 4px; font-si
     <button class="tab active" data-tab="models" role="tab">Models</button>
     <button class="tab" data-tab="terminal" role="tab">Terminal commands</button>
     <button class="tab" data-tab="sizes" role="tab">Size reference</button>
+    <a class="tab" href="/workflow.html" role="tab">Assessment workflow&nbsp;↗</a>
   </nav>
   <div class="controls" id="controls">
     <input id="q" type="search" placeholder="Search anything — “A1989”, “MacBookPro15,2”, “M2 Max 16”, “Touch Bar”, “2021”…" autofocus />
@@ -281,7 +282,7 @@ code { background: var(--panel-2); padding: 1px 5px; border-radius: 4px; font-si
         <h3>Resale clearance checks</h3>
         <div class="cmd">
           <div class="cmd-row"><code>system_profiler SPHardwareDataType</code></div>
-          <div class="cmd-desc"><b>Activation Lock</b> — the most important check. Look for the <i>Activation Lock Status</i> line in the output. <i>Enabled</i> means the unit is essentially bricked for resale until the previous owner signs out of iCloud and removes the device from Find My.</div>
+          <div class="cmd-desc"><b>Activation Lock</b> — the most important check. Look for the <i>Activation Lock Status</i> line in the output. <i>Enabled</i> means the unit is essentially bricked for resale until the previous owner signs out of iCloud and removes the device from Find My. Only T2 Intel Macs (2018+) and Apple Silicon report this line — pre-T2 Intel Macs (2017 and older) don't support Activation Lock at all, so the line is simply absent (a missing line is not the same as <i>Disabled</i>; check the era first).</div>
           <div class="cmd-out">Activation Lock Status: Disabled</div>
         </div>
         <div class="cmd">
@@ -338,7 +339,7 @@ code { background: var(--panel-2); padding: 1px 5px; border-radius: 4px; font-si
 
       <div class="cmd-group">
         <h3>Quick grading workflow</h3>
-        <div class="cmd-desc" style="margin-bottom:10px;">Five short commands, run in order, fill out a complete intake/grading sheet. None require copy-paste.</div>
+        <div class="cmd-desc" style="margin-bottom:10px;">Five short commands, run in order, fill out a complete intake/grading sheet. None require copy-paste. For the full intake decision tree — physical inspection, Recovery entry, Intel/T2/Apple Silicon nuances, battery-health strategy — see the <a href="/workflow.html">Assessment workflow</a>.</div>
         <div class="cmd">
           <div class="cmd-row"><code>system_profiler SPHardwareDataType</code></div>
           <div class="cmd-desc"><b>1.</b> Model, identifier, chip, cores, RAM, serial, <i>and</i> Activation Lock status — all in one readable block.</div>
@@ -415,7 +416,7 @@ const DATA = [
     cpu:"Intel Core 2 Duo 2.0 / 2.4 GHz (Penryn)",
     ram:"2–8 GB DDR3", storage:"160–320 GB HDD or 128 GB SSD",
     display:"13.3\" 1280×800 glossy LED",
-    ports:"2× USB-A, Mini DisplayPort, Gigabit Ethernet, FireWire 400 (none on this rev), MagSafe 1",
+    ports:"2× USB-A, Mini DisplayPort, Gigabit Ethernet, MagSafe 1",
     battery:"45 Wh / 500 cycles",
     size:"13\"", era:"intel" },
 
@@ -811,24 +812,6 @@ const DATA = [
     battery:"72.4 Wh / 1000 cycles",
     size:"14\"", era:"silicon" },
 
-  { family:"MacBook Pro", name:"MacBook Pro 14\" (M5 Pro / M5 Max, 2026)", year:2026,
-    modelId:"Mac17,9 (Pro) / Mac17,7 (Max)", modelNumber:"A3428 family",
-    cpu:"M5 Pro 15/18-core + 16/20-core GPU · M5 Max 18-core + 32/40-core GPU",
-    ram:"24 – 128 GB unified", storage:"512 GB – 8 TB",
-    display:"14.2\" Liquid Retina XDR mini-LED, 120 Hz ProMotion",
-    ports:"3× TB5, HDMI 2.1, SDXC, MagSafe 3, 3.5 mm",
-    battery:"72.4 Wh / 1000 cycles",
-    size:"14\"", era:"silicon" },
-
-  { family:"MacBook Pro", name:"MacBook Pro 16\" (M5 Pro / M5 Max, 2026)", year:2026,
-    modelId:"Mac17,8 (Pro) / Mac17,6 (Max)", modelNumber:"A3428",
-    cpu:"M5 Pro 18-core + 20-core GPU · M5 Max 18-core + 32/40-core GPU",
-    ram:"24 – 128 GB unified", storage:"512 GB – 8 TB",
-    display:"16.2\" Liquid Retina XDR mini-LED, 120 Hz ProMotion",
-    ports:"3× TB5, HDMI 2.1, SDXC, MagSafe 3, 3.5 mm",
-    battery:"100 Wh / 1000 cycles",
-    size:"16\"", era:"silicon" },
-
   /* ============================== MACBOOK AIR ============================== */
   { family:"MacBook Air", name:"MacBook Air 13\" (Original, Early 2008)", year:2008,
     modelId:"MacBookAir1,1", modelNumber:"A1237",
@@ -862,7 +845,7 @@ const DATA = [
     cpu:"Intel Core i5 / i7 (Sandy Bridge), 1.6–1.8 GHz",
     ram:"2 / 4 GB DDR3", storage:"64 / 128 / 256 GB SSD",
     display:"11.6\" 1366×768 or 13.3\" 1440×900 LED",
-    ports:"2× USB-A, Thunderbolt 1, SDXC (13\"), MagSafe 2",
+    ports:"2× USB-A, Thunderbolt 1, SDXC (13\"), MagSafe 1",
     battery:"35 / 50 Wh / 1000 cycles",
     size:"11\"/13\"", era:"intel" },
 
@@ -1056,12 +1039,7 @@ document.querySelectorAll('thead th').forEach(th => {
     const k = th.dataset.key;
     if (sortKey === k) sortDir *= -1; else { sortKey = k; sortDir = 1; }
     document.querySelectorAll('thead th .arrow').forEach(a => a.textContent = '');
-    th.querySelector('.arrow') && (th.querySelector('.arrow').textContent = sortDir === 1 ? '▴' : '▾');
-    // ensure arrow span exists
-    if (!th.querySelector('.arrow')) {
-      const s = document.createElement('span'); s.className = 'arrow'; s.textContent = sortDir === 1 ? '▴' : '▾';
-      th.appendChild(s);
-    }
+    th.querySelector('.arrow').textContent = sortDir === 1 ? '▴' : '▾';
     render();
     saveState();
   });
@@ -1093,20 +1071,31 @@ loadState();
 render();
 
 // --- Tab switching ----------------------------------------------------------
-const tabButtons = document.querySelectorAll('nav.tabs .tab');
+const VALID_TABS = ['models', 'terminal', 'sizes'];
+const tabButtons = document.querySelectorAll('nav.tabs button.tab');
 const tabPanels  = document.querySelectorAll('.tab-panel');
 const controlsEl = document.getElementById('controls');
 function setTab(name) {
+  if (!VALID_TABS.includes(name)) name = 'models';
   tabButtons.forEach(b => b.classList.toggle('active', b.dataset.tab === name));
   tabPanels.forEach(p => { p.hidden = (p.dataset.panel !== name); });
   // Search controls only make sense on the Models tab
   controlsEl.classList.toggle('hidden', name !== 'models');
+  // Reflect tab in URL hash (so deep links / sharing work); default tab clears the hash
+  const targetHash = name === 'models' ? '' : '#' + name;
+  if (location.hash !== targetHash) {
+    history.replaceState(null, '', location.pathname + location.search + targetHash);
+  }
   try { localStorage.setItem('mbid-tab', name); } catch (_) {}
 }
 tabButtons.forEach(b => b.addEventListener('click', () => setTab(b.dataset.tab)));
+window.addEventListener('hashchange', () => setTab(location.hash.replace(/^#/, '')));
+
+// Initial tab priority: URL hash > localStorage > default
+const hashTab = location.hash.replace(/^#/, '');
 let savedTab = null;
 try { savedTab = localStorage.getItem('mbid-tab'); } catch (_) {}
-setTab(['terminal','sizes'].includes(savedTab) ? savedTab : 'models');
+setTab(VALID_TABS.includes(hashTab) ? hashTab : (VALID_TABS.includes(savedTab) ? savedTab : 'models'));
 
 // --- RAM size reference -----------------------------------------------------
 const RAM_SIZES = [1, 2, 3, 4, 6, 8, 12, 16, 18, 24, 32, 36, 48, 64, 96, 128];

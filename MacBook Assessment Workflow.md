@@ -236,6 +236,8 @@ This is usually the best recovery-safe intake method because it:
 - Is easy to automate
 - Returns structured data
 
+> **Use `ioreg` in Recovery; prefer `system_profiler SPPowerDataType` everywhere else.** Once the Mac is booted normally, `system_profiler SPPowerDataType` reports `Maximum Capacity: NN%` directly — no unit interpretation, no version drift. The `ioreg` route exists because Recovery on Apple Silicon often can't run `system_profiler SPPowerDataType` cleanly. If you're scripting against `ioreg` output, also be aware: Apple Silicon exposes companion fields (`AppleRawMaxCapacity`, `NominalChargeCapacity`, `DesignCapacity`) in mAh-style units alongside the percentage `MaxCapacity` — target each key by name, not by output ordering, since Apple has quietly renamed/added these between macOS releases.
+
 ---
 
 ### Important Reality Check
@@ -258,7 +260,7 @@ Recovery battery reporting is unreliable on T2 and some Apple Silicon Macs — e
 
 #### Activation Lock
 
-In Recovery (Apple Silicon):
+In Recovery (T2 Intel or Apple Silicon):
 
 ```bash
 system_profiler SPHardwareDataType | grep -i "activation"
@@ -267,6 +269,8 @@ system_profiler SPHardwareDataType | grep -i "activation"
 Logged in: System Settings → General → About → Activation Lock status.
 
 If locked, the machine cannot be resold or fully wiped without the original owner's Apple ID. Stop intake and flag.
+
+> **Pre-T2 Intel Macs (2017 and older) do not support Activation Lock.** The command above returns nothing on those machines — that's expected, not a clean bill of health. Confirm the era from §5 before interpreting an empty result.
 
 #### MDM Enrollment
 
@@ -435,7 +439,7 @@ ioreg -l | grep -i IOPlatformSerialNumber
 
 ### Suggested Derived Fields
 
-Use [MacBook Model Lookup](TODO) to derive these from `hw.model`:
+Use [MacBook Model Lookup](/) to derive these from `hw.model`:
 
 - Model Year
 - Screen Size

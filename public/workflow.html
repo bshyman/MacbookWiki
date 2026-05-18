@@ -1,0 +1,528 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>MacBook Intake & Assessment Workflow</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #161a22;
+    --panel-2: #1c2230;
+    --border: #2a3142;
+    --text: #e7ecf3;
+    --muted: #9aa3b2;
+    --accent: #7ab8ff;
+    --accent-2: #ffd166;
+    --row: #131722;
+    --row-alt: #171c28;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f7fa;
+      --panel: #ffffff;
+      --panel-2: #f0f3f8;
+      --border: #d8dee9;
+      --text: #1b2230;
+      --muted: #5a6679;
+      --accent: #2563eb;
+      --accent-2: #b45309;
+      --row: #ffffff;
+      --row-alt: #f5f7fa;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text);
+    font: 15px/1.55 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, system-ui, sans-serif; }
+  header {
+    padding: 18px 28px 14px; border-bottom: 1px solid var(--border); background: var(--panel);
+    position: sticky; top: 0; z-index: 5;
+    display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap;
+  }
+  header h1 { margin: 0; font-size: 18px; letter-spacing: -0.01em; }
+  header .back { color: var(--accent); text-decoration: none; font-size: 13px; }
+  header .back:hover { text-decoration: underline; }
+  main { max-width: 880px; margin: 0 auto; padding: 28px 24px 60px; }
+  main h1 { font-size: 26px; letter-spacing: -0.01em; margin: 0 0 8px; }
+  main h2 { font-size: 20px; letter-spacing: -0.01em; margin: 36px 0 10px; padding-top: 12px; border-top: 1px solid var(--border); }
+  main h2:first-of-type { border-top: 0; padding-top: 0; }
+  main h3 { font-size: 16px; color: var(--accent-2); margin: 22px 0 6px; }
+  main h4 { font-size: 14px; margin: 16px 0 4px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+  main p, main li { color: var(--text); }
+  main a { color: var(--accent); text-decoration: none; }
+  main a:hover { text-decoration: underline; }
+  main code {
+    background: var(--panel-2); padding: 1px 5px; border-radius: 4px;
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 0.9em;
+  }
+  main pre {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
+    padding: 12px 14px; overflow-x: auto;
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 12.5px; line-height: 1.5;
+  }
+  main pre code { background: transparent; padding: 0; font-size: inherit; }
+  main table { border-collapse: collapse; width: 100%; margin: 12px 0; font-size: 13.5px; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  main th, main td { padding: 8px 12px; border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; }
+  main th { background: var(--panel-2); font-weight: 600; }
+  main tr:last-child td { border-bottom: 0; }
+  main hr { border: 0; border-top: 1px solid var(--border); margin: 28px 0; }
+  main blockquote { border-left: 3px solid var(--accent); margin: 12px 0; padding: 4px 14px; color: var(--muted); background: var(--panel); border-radius: 0 6px 6px 0; }
+  main ul, main ol { padding-left: 22px; }
+  main li { margin: 3px 0; }
+</style>
+</head>
+<body>
+<header>
+  <h1>MacBook Intake & Assessment Workflow</h1>
+  <a class="back" href="/">← MacBook Identification Wiki</a>
+</header>
+<main>
+<h1 id="macbook-intake--assessment-workflow">MacBook Intake &amp; Assessment Workflow</h1>
+<h2 id="goal">Goal</h2>
+<p>Standardize intake and hardware assessment for MacBooks in unknown states while minimizing setup time.</p>
+<hr>
+<h2 id="at-a-glance-workflow">At-a-Glance Workflow</h2>
+<pre><code class="language-text">Receive MacBook
+    ↓
+Physical inspection
+    ↓
+Can access desktop?
+    ├─ YES → Gather battery data immediately
+    │          using system_profiler SPPowerDataType
+    │
+    └─ NO → Boot Recovery
+               ↓
+        Gather hardware info via Terminal
+               ↓
+        Attempt ioreg battery read
+               ↓
+        Battery data available?
+            ├─ YES → Finish intake
+            │
+            └─ NO → Temporary account or
+                     external boot environment
+                     for full battery metrics
+</code></pre>
+<p>The numbered sections below provide detailed reference for each branch.</p>
+<hr>
+<h2 id="table-of-contents">Table of Contents</h2>
+<ul>
+<li><a href="#1-initial-physical-inspection">1. Initial Physical Inspection</a></li>
+<li><a href="#2-determine-device-state">2. Determine Device State</a></li>
+<li><a href="#3-recovery-workflow">3. Recovery Workflow</a></li>
+<li><a href="#4-battery-health-strategy">4. Battery Health Strategy</a></li>
+<li><a href="#5-apple-silicon-vs-intel-notes">5. Apple Silicon vs Intel Notes</a></li>
+<li><a href="#6-common-terminal-commands">6. Common Terminal Commands</a></li>
+<li><a href="#7-recommended-intake-data-fields">7. Recommended Intake Data Fields</a></li>
+</ul>
+<hr>
+<h2 id="1-initial-physical-inspection">1. Initial Physical Inspection</h2>
+<h3 id="before-powering-on">Before Powering On</h3>
+<p>Record:</p>
+<ul>
+<li>Cosmetic condition</li>
+<li>Screen damage</li>
+<li>Keyboard condition</li>
+<li>Missing screws</li>
+<li>Signs of liquid damage</li>
+<li>Engraving/stickers</li>
+<li>Charger included?</li>
+<li>SSD removed?</li>
+</ul>
+<p>Quick checks:</p>
+<ul>
+<li>Does it power on?</li>
+<li>Does it chime?</li>
+<li>Backlight?</li>
+<li>Trackpad click?</li>
+<li>Fan spin?</li>
+</ul>
+<h3 id="visual-identification-clues">Visual Identification Clues</h3>
+<p>Before powering on, these visual cues narrow down the model:</p>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>What it tells you</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Notch in display</td>
+<td>MacBook Pro 14&quot;/16&quot; (late 2021 or newer) or MacBook Air M2/M3 (2022+)</td>
+</tr>
+<tr>
+<td>Touch Bar above keyboard</td>
+<td>Intel MacBook Pro, 2016–2020</td>
+</tr>
+<tr>
+<td>MagSafe port + HDMI + SD card slot</td>
+<td>MacBook Pro 14&quot;/16&quot;, 2021+ (Apple Silicon Pro/Max)</td>
+</tr>
+<tr>
+<td>USB-C ports only, no MagSafe</td>
+<td>2016–2020 MacBook Pro, or M1 MacBook Air/Pro 13&quot; (2020–2022)</td>
+</tr>
+<tr>
+<td>USB-A ports present</td>
+<td>Pre-2016 MacBook Pro</td>
+</tr>
+<tr>
+<td>Wedge-shaped chassis</td>
+<td>MacBook Air (any generation through M2; M3 still wedge, M-series Pro is flat)</td>
+</tr>
+<tr>
+<td>Function row keys (F1–F12) instead of Touch Bar</td>
+<td>Pre-2016 Intel or 2021+ Apple Silicon Pro</td>
+</tr>
+<tr>
+<td>White/silver Apple logo on lid (non-illuminated)</td>
+<td>2016 or newer</td>
+</tr>
+<tr>
+<td>Glowing Apple logo on lid</td>
+<td>2015 or older</td>
+</tr>
+</tbody></table>
+<p>Then continue:</p>
+<ul>
+<li>If device boots normally → <a href="#2-determine-device-state">2. Determine Device State</a></li>
+<li>If device does NOT boot → boot Recovery or Diagnostics first</li>
+</ul>
+<hr>
+<h2 id="2-determine-device-state">2. Determine Device State</h2>
+<h3 id="scenario-a--welcome--setup-screen">Scenario A — Welcome / Setup Screen</h3>
+<p>Examples:</p>
+<ul>
+<li>Country selection</li>
+<li>Hello animation</li>
+<li>Setup Assistant</li>
+</ul>
+<p>Recommended path:</p>
+<ol>
+<li>DO NOT complete setup yet</li>
+<li>Boot into Recovery</li>
+<li>Gather hardware data from Terminal</li>
+<li>Decide whether deeper testing is needed</li>
+</ol>
+<p>Continue here:
+→ <a href="#3-recovery-workflow">3. Recovery Workflow</a></p>
+<hr>
+<h3 id="scenario-b--existing-user-desktop">Scenario B — Existing User Desktop</h3>
+<p>Examples:</p>
+<ul>
+<li>Already logged in</li>
+<li>Existing account available</li>
+<li>Password known</li>
+</ul>
+<p>Recommended path:</p>
+<ol>
+<li>Open About This Mac (Apple menu) for fast identification</li>
+<li>Gather battery data from System Settings or Terminal</li>
+<li>Run quick hardware checks</li>
+<li>Optionally reboot to Recovery for consistency</li>
+</ol>
+<hr>
+<h3 id="scenario-c--locked--unknown-password">Scenario C — Locked / Unknown Password</h3>
+<p>Recommended path:</p>
+<ol>
+<li>Boot Recovery</li>
+<li>Gather hardware data</li>
+<li>Evaluate Activation Lock / MDM status</li>
+<li>Decide whether to erase</li>
+</ol>
+<p>Continue here:
+→ <a href="#3-recovery-workflow">3. Recovery Workflow</a></p>
+<hr>
+<h2 id="3-recovery-workflow">3. Recovery Workflow</h2>
+<h3 id="enter-recovery-mode">Enter Recovery Mode</h3>
+<h4 id="intel-macs">Intel Macs</h4>
+<ul>
+<li>Power on while holding:<ul>
+<li>Command + R</li>
+</ul>
+</li>
+</ul>
+<h4 id="apple-silicon">Apple Silicon</h4>
+<ul>
+<li>Press and hold the power button until &quot;Loading startup options&quot; appears</li>
+<li>Release the power button</li>
+<li>Click <strong>Options</strong>, then click <strong>Continue</strong></li>
+<li>If prompted, select a volume and enter the admin password</li>
+</ul>
+<hr>
+<h3 id="open-terminal">Open Terminal</h3>
+<p>Recovery Menu:
+Utilities → Terminal</p>
+<hr>
+<h3 id="core-intake-commands">Core Intake Commands</h3>
+<h4 id="device-identifier">Device Identifier</h4>
+<pre><code class="language-bash">sysctl -n hw.model
+</code></pre>
+<h4 id="cpu">CPU</h4>
+<pre><code class="language-bash">sysctl machdep.cpu.brand_string
+</code></pre>
+<h4 id="ram">RAM</h4>
+<pre><code class="language-bash">sysctl hw.memsize
+</code></pre>
+<h4 id="serial-number">Serial Number</h4>
+<pre><code class="language-bash">ioreg -l | grep -i IOPlatformSerialNumber
+</code></pre>
+<h4 id="storage-size">Storage Size</h4>
+<pre><code class="language-bash">diskutil info disk0 | grep &quot;Disk Size&quot;
+</code></pre>
+<h4 id="full-hardware-summary">Full Hardware Summary</h4>
+<pre><code class="language-bash">system_profiler SPHardwareDataType
+# if command not found:
+/usr/sbin/system_profiler SPHardwareDataType
+</code></pre>
+<hr>
+<h3 id="recovery-battery-assessment">Recovery Battery Assessment</h3>
+<h4 id="fastest-reliable-battery-command">Fastest Reliable Battery Command</h4>
+<pre><code class="language-bash">ioreg -rc AppleSmartBattery | egrep &quot;DesignCapacity|MaxCapacity|CycleCount&quot;
+</code></pre>
+<p>Use:</p>
+<ul>
+<li>DesignCapacity</li>
+<li>MaxCapacity</li>
+<li>CycleCount</li>
+</ul>
+<h4 id="interpret-maxcapacity">Interpret MaxCapacity</h4>
+<p><code>MaxCapacity</code> is reported in different units depending on the Mac:</p>
+<ul>
+<li><strong>T2 Macs and Apple Silicon:</strong> <code>MaxCapacity</code> is already a normalized 0–100 percentage. Record it directly as battery health.</li>
+<li><strong>Pre-T2 Intel Macs:</strong> <code>MaxCapacity</code> is reported in raw mAh. Apply the formula below.</li>
+</ul>
+<p>Quick rule: if <code>MaxCapacity</code> is ≤ 100, it IS the percentage. If it&#39;s a large number (typically 4000–8000), it&#39;s mAh and needs the formula.</p>
+<p>Battery Health Formula (pre-T2 Intel only):</p>
+<pre><code class="language-text">MaxCapacity / DesignCapacity * 100
+</code></pre>
+<p>Examples:</p>
+<pre><code class="language-text">Pre-T2 Intel:        6200 / 6900 = 89%
+T2 / Apple Silicon:  MaxCapacity = 89  →  Battery health 89%
+</code></pre>
+<p>This is usually the best recovery-safe intake method because it:</p>
+<ul>
+<li>Works without setup</li>
+<li>Avoids installing CoconutBattery</li>
+<li>Is easy to automate</li>
+<li>Returns structured data</li>
+</ul>
+<blockquote>
+<p><strong>Use <code>ioreg</code> in Recovery; prefer <code>system_profiler SPPowerDataType</code> everywhere else.</strong> Once the Mac is booted normally, <code>system_profiler SPPowerDataType</code> reports <code>Maximum Capacity: NN%</code> directly — no unit interpretation, no version drift. The <code>ioreg</code> route exists because Recovery on Apple Silicon often can&#39;t run <code>system_profiler SPPowerDataType</code> cleanly. If you&#39;re scripting against <code>ioreg</code> output, also be aware: Apple Silicon exposes companion fields (<code>AppleRawMaxCapacity</code>, <code>NominalChargeCapacity</code>, <code>DesignCapacity</code>) in mAh-style units alongside the percentage <code>MaxCapacity</code> — target each key by name, not by output ordering, since Apple has quietly renamed/added these between macOS releases.</p>
+</blockquote>
+<hr>
+<h3 id="important-reality-check">Important Reality Check</h3>
+<p>Recovery battery reporting is unreliable on T2 and some Apple Silicon Macs — expect occasional missing or incomplete values. If data is missing, fall back to <a href="#4-battery-health-strategy">Battery Health Strategy</a>.</p>
+<hr>
+<h3 id="recommended-recovery-decision-tree">Recommended Recovery Decision Tree</h3>
+<h4 id="if-battery-data-appears-correctly">If battery data appears correctly</h4>
+<p>→ Record values and continue intake</p>
+<h4 id="if-battery-data-is-missing">If battery data is missing</h4>
+<p>→ Continue to <a href="#4-battery-health-strategy">4. Battery Health Strategy</a></p>
+<hr>
+<h3 id="activation-lock--mdm-checks">Activation Lock &amp; MDM Checks</h3>
+<h4 id="activation-lock">Activation Lock</h4>
+<p>In Recovery (T2 Intel or Apple Silicon):</p>
+<pre><code class="language-bash">system_profiler SPHardwareDataType | grep -i &quot;activation&quot;
+</code></pre>
+<p>Logged in: System Settings → General → About → Activation Lock status.</p>
+<p>If locked, the machine cannot be resold or fully wiped without the original owner&#39;s Apple ID. Stop intake and flag.</p>
+<blockquote>
+<p><strong>Pre-T2 Intel Macs (2017 and older) do not support Activation Lock.</strong> The command above returns nothing on those machines — that&#39;s expected, not a clean bill of health. Confirm the era from §5 before interpreting an empty result.</p>
+</blockquote>
+<h4 id="mdm-enrollment">MDM Enrollment</h4>
+<p>Logged in:</p>
+<pre><code class="language-bash">profiles status -type enrollment
+</code></pre>
+<p>Look for:</p>
+<ul>
+<li><code>Enrolled via DEP: Yes</code> — device will re-enroll automatically after a wipe. Treat as MDM-locked.</li>
+<li><code>MDM enrollments: Yes</code> — currently managed.</li>
+</ul>
+<p>Visual cue (no login needed): if Setup Assistant shows a &quot;Remote Management&quot; screen, the device is DEP-supervised.</p>
+<p>If DEP-enrolled, the original org must release it from their MDM before resale.</p>
+<hr>
+<h2 id="4-battery-health-strategy">4. Battery Health Strategy</h2>
+<h3 id="current-best-practical-workflow">Current Best Practical Workflow</h3>
+<h4 id="preferred-path">Preferred Path</h4>
+<ol>
+<li>Attempt battery read in Recovery</li>
+<li>If successful → avoid setup entirely</li>
+<li>If unsuccessful:<ul>
+<li>Boot normally</li>
+<li>Use existing account if available</li>
+<li>Otherwise create temporary local account</li>
+</ul>
+</li>
+<li>Run:</li>
+</ol>
+<pre><code class="language-bash">system_profiler SPPowerDataType
+# if command not found:
+/usr/sbin/system_profiler SPPowerDataType
+</code></pre>
+<ol start="5">
+<li>Record:</li>
+</ol>
+<ul>
+<li>Cycle Count</li>
+<li>Maximum Capacity</li>
+<li>Condition</li>
+</ul>
+<ol start="6">
+<li>Remove temp account or erase machine afterward</li>
+</ol>
+<hr>
+<h3 id="why-recovery-alone-is-not-fully-reliable">Why Recovery Alone Is Not Fully Reliable</h3>
+<p>Battery reporting depends on:</p>
+<ul>
+<li>Power management services</li>
+<li>SMC communication</li>
+<li>OS-level frameworks</li>
+<li>Model-specific hardware initialization</li>
+</ul>
+<p>Recovery intentionally loads a reduced environment.</p>
+<p>Result:</p>
+<ul>
+<li>Hardware identification works well</li>
+<li>Battery telemetry may not</li>
+</ul>
+<hr>
+<h2 id="5-apple-silicon-vs-intel-notes">5. Apple Silicon vs Intel Notes</h2>
+<p>Confirm architecture first via About This Mac, <code>uname -m</code> (<code>arm64</code> = Apple Silicon, <code>x86_64</code> = Intel), or visual cues (notch + flat sides = Apple Silicon Pro/Max). The table below summarizes the workflow differences that affect intake.</p>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>Intel pre-T2 (2017 &amp; older)</th>
+<th>Intel T2 (2018–2020)</th>
+<th>Apple Silicon (M1+, 2020+)</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Recovery entry</td>
+<td>Power on holding Cmd+R</td>
+<td>Power on holding Cmd+R; may prompt for admin password</td>
+<td>Hold power until &quot;Loading startup options&quot;</td>
+</tr>
+<tr>
+<td>Recovery Terminal</td>
+<td>Open access</td>
+<td>Disk access may require auth</td>
+<td>Requires admin password for boot volume</td>
+</tr>
+<tr>
+<td>Battery telemetry in Recovery</td>
+<td><code>MaxCapacity</code> in raw mAh; reliable</td>
+<td><code>MaxCapacity</code> as percentage; sometimes missing</td>
+<td><code>MaxCapacity</code> as percentage; sometimes missing</td>
+</tr>
+<tr>
+<td>Activation Lock</td>
+<td>Not present</td>
+<td>Possible (T2 + Apple ID)</td>
+<td>Possible (Secure Enclave + Apple ID)</td>
+</tr>
+<tr>
+<td>External boot</td>
+<td>Straightforward</td>
+<td>Blocked if firmware password set or external-boot disallowed</td>
+<td>Requires &quot;Reduced Security&quot; + admin auth</td>
+</tr>
+<tr>
+<td>Apple Diagnostics</td>
+<td>Power on holding D</td>
+<td>Power on holding D</td>
+<td>Hold power → Cmd+D from Options screen</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="6-common-terminal-commands">6. Common Terminal Commands</h2>
+<h3 id="device-identifier-1">Device Identifier</h3>
+<pre><code class="language-bash">sysctl -n hw.model
+</code></pre>
+<hr>
+<h3 id="cpu-1">CPU</h3>
+<pre><code class="language-bash">sysctl machdep.cpu.brand_string
+</code></pre>
+<hr>
+<h3 id="ram-1">RAM</h3>
+<pre><code class="language-bash">sysctl hw.memsize
+</code></pre>
+<p>Common values:</p>
+<table>
+<thead>
+<tr>
+<th>Bytes</th>
+<th>RAM</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>4294967296</td>
+<td>4 GB</td>
+</tr>
+<tr>
+<td>8589934592</td>
+<td>8 GB</td>
+</tr>
+<tr>
+<td>17179869184</td>
+<td>16 GB</td>
+</tr>
+<tr>
+<td>34359738368</td>
+<td>32 GB</td>
+</tr>
+<tr>
+<td>68719476736</td>
+<td>64 GB</td>
+</tr>
+</tbody></table>
+<hr>
+<h3 id="storage">Storage</h3>
+<pre><code class="language-bash">diskutil info disk0
+</code></pre>
+<hr>
+<h3 id="battery">Battery</h3>
+<pre><code class="language-bash">ioreg -rc AppleSmartBattery
+</code></pre>
+<p>OR</p>
+<pre><code class="language-bash">system_profiler SPPowerDataType
+# if command not found:
+/usr/sbin/system_profiler SPPowerDataType
+</code></pre>
+<hr>
+<h3 id="serial-number-1">Serial Number</h3>
+<pre><code class="language-bash">ioreg -l | grep -i IOPlatformSerialNumber
+</code></pre>
+<hr>
+<h2 id="7-recommended-intake-data-fields">7. Recommended Intake Data Fields</h2>
+<h3 id="core-fields">Core Fields</h3>
+<ul>
+<li>Serial Number</li>
+<li>Device Identifier</li>
+<li>CPU</li>
+<li>RAM</li>
+<li>SSD Size</li>
+<li>Battery Cycle Count</li>
+<li>Battery Health %</li>
+<li>Activation Lock?</li>
+<li>MDM Locked?</li>
+<li>Cosmetic Grade</li>
+<li>Charger Included?</li>
+<li>Passcode Present?</li>
+</ul>
+<hr>
+<h3 id="suggested-derived-fields">Suggested Derived Fields</h3>
+<p>Use <a href="/">MacBook Model Lookup</a> to derive these from <code>hw.model</code>:</p>
+<ul>
+<li>Model Year</li>
+<li>Screen Size</li>
+<li>Intel vs Apple Silicon</li>
+<li>Touch Bar?</li>
+<li>Retina?</li>
+<li>Storage Upgradeability</li>
+</ul>
+
+</main>
+</body>
+</html>
