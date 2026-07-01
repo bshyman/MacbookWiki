@@ -103,17 +103,55 @@ Can access desktop?
                      external boot environment
                      for full battery metrics
 </code></pre>
-<p>The numbered sections below provide detailed reference for each branch.</p>
+<p>Each step above maps to a section below:</p>
+<table>
+<thead>
+<tr>
+<th>Step in the diagram</th>
+<th>Detailed reference</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Physical inspection</td>
+<td><a href="#1-initial-physical-inspection">§1 Initial Physical Inspection</a></td>
+</tr>
+<tr>
+<td>Can access desktop?</td>
+<td><a href="#2-determine-device-state">§2 Determine Device State</a></td>
+</tr>
+<tr>
+<td>Gather battery data immediately (desktop path)</td>
+<td><a href="#6-battery-health-strategy">§6 Battery Health Strategy</a></td>
+</tr>
+<tr>
+<td>Boot Recovery</td>
+<td><a href="#enter-recovery-mode">§3 Recovery Workflow → Enter Recovery Mode</a></td>
+</tr>
+<tr>
+<td>Gather hardware info via Terminal</td>
+<td><a href="#core-intake-commands">§3 Recovery Workflow → Core Intake Commands</a></td>
+</tr>
+<tr>
+<td>Attempt ioreg battery read</td>
+<td><a href="#recovery-battery-assessment">§3 Recovery Workflow → Recovery Battery Assessment</a></td>
+</tr>
+<tr>
+<td>Temporary account / external boot environment</td>
+<td><a href="#6-battery-health-strategy">§6 Battery Health Strategy</a></td>
+</tr>
+</tbody></table>
 <hr>
 <h2 id="table-of-contents">Table of Contents</h2>
 <ul>
 <li><a href="#1-initial-physical-inspection">1. Initial Physical Inspection</a></li>
 <li><a href="#2-determine-device-state">2. Determine Device State</a></li>
 <li><a href="#3-recovery-workflow">3. Recovery Workflow</a></li>
-<li><a href="#4-battery-health-strategy">4. Battery Health Strategy</a></li>
-<li><a href="#5-apple-silicon-vs-intel-notes">5. Apple Silicon vs Intel Notes</a></li>
-<li><a href="#6-common-terminal-commands">6. Common Terminal Commands</a></li>
-<li><a href="#7-recommended-intake-data-fields">7. Recommended Intake Data Fields</a></li>
+<li><a href="#4-activation-lock--mdm-checks">4. Activation Lock &amp; MDM Checks</a></li>
+<li><a href="#5-firmware-password-unlock-intel-only">5. Firmware Password Unlock (Intel only)</a></li>
+<li><a href="#6-battery-health-strategy">6. Battery Health Strategy</a></li>
+<li><a href="#7-apple-silicon-vs-intel-notes">7. Apple Silicon vs Intel Notes</a></li>
+<li><a href="#8-common-terminal-commands">8. Common Terminal Commands</a></li>
+<li><a href="#9-recommended-intake-data-fields">9. Recommended Intake Data Fields</a></li>
 </ul>
 <hr>
 <h2 id="1-initial-physical-inspection">1. Initial Physical Inspection</h2>
@@ -227,7 +265,7 @@ Can access desktop?
 <ol>
 <li>Boot Recovery</li>
 <li>Gather hardware data</li>
-<li>Evaluate Activation Lock / MDM status</li>
+<li>Evaluate <a href="#4-activation-lock--mdm-checks">Activation Lock / MDM status</a></li>
 <li>Decide whether to erase</li>
 </ol>
 <p>Continue here:
@@ -236,11 +274,17 @@ Can access desktop?
 <h2 id="3-recovery-workflow">3. Recovery Workflow</h2>
 <h3 id="enter-recovery-mode">Enter Recovery Mode</h3>
 <h4 id="intel-macs">Intel Macs</h4>
+<ol>
+<li>Turn the Mac on (or restart it) and <strong>immediately</strong> press and hold <strong>Command (⌘) + R</strong> — start holding right after pressing power, before/during the startup chime, not after the screen lights up.</li>
+<li>Keep holding both keys until the <strong>Apple logo or a spinning globe</strong> appears, then release. Don&#39;t let go at the chime — too early and it boots normally.</li>
+<li>Wait for the <strong>macOS Utilities</strong> window to load.</li>
+</ol>
+<p>If a firmware password is set, a padlock prompt appears instead of the Apple logo — enter the password to continue (see <a href="#5-firmware-password-unlock-intel-only">§5 Firmware Password Unlock</a>).</p>
+<p>Related combinations (held the exact same way — press immediately, release at the Apple logo/globe):</p>
 <ul>
-<li>Power on while holding:<ul>
-<li>Command + R</li>
-</ul>
-</li>
+<li><strong>Command + R</strong> — built-in Recovery; the latest macOS that was installed on this Mac.</li>
+<li><strong>Option + Command + R</strong> — internet Recovery; upgrades to the latest macOS this Mac supports.</li>
+<li><strong>Option + Shift + Command + R</strong> — internet Recovery; the macOS the Mac shipped with (or the closest still available).</li>
 </ul>
 <h4 id="apple-silicon">Apple Silicon</h4>
 <ul>
@@ -258,47 +302,80 @@ Utilities → Terminal</p>
 <h4 id="device-identifier">Device Identifier</h4>
 <pre><code class="language-bash">sysctl -n hw.model
 </code></pre>
+<p>Record it exactly as surfaced — e.g. <code>MacBookAir8,1</code>, no spaces around the comma and matching the original casing. The model lookup keys on this exact string.</p>
 <h4 id="cpu">CPU</h4>
 <pre><code class="language-bash">sysctl machdep.cpu.brand_string
 </code></pre>
+<p>Output looks like <code>Intel(R) Core(TM) i5-8210Y CPU @ 1.60GHz</code>. Record the <strong>processor number</strong> — the token right after <code>Core(TM)</code>, e.g. <code>i5-8210Y</code> (tier + SKU + suffix). Drop the <code>Intel(R) Core(TM)</code> prefix and the trailing <code>CPU @ …GHz</code>.</p>
 <h4 id="ram">RAM</h4>
 <pre><code class="language-bash">sysctl hw.memsize
 </code></pre>
+<p><code>hw.memsize</code> returns raw bytes (e.g. <code>17179869184</code>), not GB. Match that number against the <a href="/#sizes">Size reference</a> to read off the RAM size — no manual math needed.</p>
 <h4 id="serial-number">Serial Number</h4>
 <pre><code class="language-bash">ioreg -l | grep -i IOPlatformSerialNumber
 </code></pre>
 <h4 id="storage-size">Storage Size</h4>
 <pre><code class="language-bash">diskutil info disk0 | grep &quot;Disk Size&quot;
 </code></pre>
-<h4 id="full-hardware-summary">Full Hardware Summary</h4>
-<pre><code class="language-bash">system_profiler SPHardwareDataType
-# if command not found:
-/usr/sbin/system_profiler SPHardwareDataType
-</code></pre>
+<p><code>Disk Size</code> reports the raw formatted capacity, which reads a few percent under the marketed size — e.g. <code>121.3 GB</code> for a 128 GB drive. Round <strong>up</strong> to the nearest standard capacity and record that:</p>
+<table>
+<thead>
+<tr>
+<th>Disk Size shows</th>
+<th>Record as</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>~121 GB</td>
+<td>128 GB</td>
+</tr>
+<tr>
+<td>~251 GB</td>
+<td>256 GB</td>
+</tr>
+<tr>
+<td>~500 GB</td>
+<td>512 GB</td>
+</tr>
+<tr>
+<td>~1.0 TB (1000 GB)</td>
+<td>1 TB</td>
+</tr>
+<tr>
+<td>~2.0 TB</td>
+<td>2 TB</td>
+</tr>
+</tbody></table>
 <hr>
 <h3 id="recovery-battery-assessment">Recovery Battery Assessment</h3>
 <h4 id="fastest-reliable-battery-command">Fastest Reliable Battery Command</h4>
 <pre><code class="language-bash">ioreg -rc AppleSmartBattery | egrep &quot;DesignCapacity|MaxCapacity|CycleCount&quot;
 </code></pre>
-<p>Use:</p>
+<p><code>DesignCapacity</code>, <code>MaxCapacity</code>, and <code>CycleCount</code> are field names in the <code>ioreg</code> output — each line reports the key followed by its numeric value (e.g. <code>&quot;MaxCapacity&quot; = 6200</code>). On Apple Silicon the same command also surfaces an <code>AppleRawMaxCapacity</code> line (the <code>MaxCapacity</code> pattern matches it as a substring) — you&#39;ll need it below. Read the values off these lines:</p>
 <ul>
-<li>DesignCapacity</li>
-<li>MaxCapacity</li>
-<li>CycleCount</li>
+<li><code>DesignCapacity</code></li>
+<li><code>MaxCapacity</code></li>
+<li><code>AppleRawMaxCapacity</code> (Apple Silicon only)</li>
+<li><code>CycleCount</code></li>
 </ul>
-<h4 id="interpret-maxcapacity">Interpret MaxCapacity</h4>
-<p><code>MaxCapacity</code> is reported in different units depending on the Mac:</p>
+<h4 id="interpret-the-capacity-values">Interpret the capacity values</h4>
+<p>The unit <code>MaxCapacity</code> uses depends on the Mac — read the output, not the model, to tell which case you&#39;re in:</p>
 <ul>
-<li><strong>T2 Macs and Apple Silicon:</strong> <code>MaxCapacity</code> is already a normalized 0–100 percentage. Record it directly as battery health.</li>
-<li><strong>Pre-T2 Intel Macs:</strong> <code>MaxCapacity</code> is reported in raw mAh. Apply the formula below.</li>
+<li><strong><code>MaxCapacity</code> in the thousands (typically 4000–8000), no <code>AppleRawMaxCapacity</code> line</strong> → <strong>pre-T2 Intel (2017 &amp; older)</strong>. <code>MaxCapacity</code> is raw mAh; compute health with the formula below.</li>
+<li><strong><code>MaxCapacity</code> ≤ 100</strong> → it&#39;s a normalized 0–100 percentage, reported by both <strong>T2 Intel and Apple Silicon</strong>. Handle the two differently:<ul>
+<li><strong>T2 Intel (2018–2020):</strong> record that percentage directly as battery health.</li>
+<li><strong>Apple Silicon (M1+, 2020+):</strong> <strong>don&#39;t trust the percentage</strong> — on these Macs <code>MaxCapacity</code> is commonly pinned at/near 100 and ignores real wear. Use the <code>AppleRawMaxCapacity</code> line (raw mAh) and compute health from <code>AppleRawMaxCapacity / DesignCapacity</code> with the formula below.</li>
 </ul>
-<p>Quick rule: if <code>MaxCapacity</code> is ≤ 100, it IS the percentage. If it&#39;s a large number (typically 4000–8000), it&#39;s mAh and needs the formula.</p>
-<p>Battery Health Formula (pre-T2 Intel only):</p>
-<pre><code class="language-text">MaxCapacity / DesignCapacity * 100
+</li>
+</ul>
+<p>To confirm the era instead of inferring it from the output, see <a href="#7-apple-silicon-vs-intel-notes">§7</a>: Intel pre-T2 is 2017 &amp; older, Intel T2 is 2018–2020, Apple Silicon is M1+ (2020+).</p>
+<p>Battery Health Formula (whenever you have a raw mAh value — <code>MaxCapacity</code> on pre-T2 Intel, <code>AppleRawMaxCapacity</code> on Apple Silicon) — divide the mAh value by the value reported under <code>DesignCapacity</code>, then multiply by 100. You&#39;re doing arithmetic on the two numbers, not running the field names as a command:</p>
+<pre><code class="language-text">(raw mAh value) / (DesignCapacity value) * 100
 </code></pre>
 <p>Examples:</p>
-<pre><code class="language-text">Pre-T2 Intel:        6200 / 6900 = 89%
-T2 / Apple Silicon:  MaxCapacity = 89  →  Battery health 89%
+<pre><code class="language-text">Pre-T2 Intel:   MaxCapacity 6200 / DesignCapacity 6900          = ~90%
+Apple Silicon:  AppleRawMaxCapacity 4100 / DesignCapacity 4380  = ~94%
+T2 Intel:       MaxCapacity = 89 (already a percentage)          → 89%
 </code></pre>
 <p>This is usually the best recovery-safe intake method because it:</p>
 <ul>
@@ -308,41 +385,63 @@ T2 / Apple Silicon:  MaxCapacity = 89  →  Battery health 89%
 <li>Returns structured data</li>
 </ul>
 <blockquote>
-<p><strong>Use <code>ioreg</code> in Recovery; prefer <code>system_profiler SPPowerDataType</code> everywhere else.</strong> Once the Mac is booted normally, <code>system_profiler SPPowerDataType</code> reports <code>Maximum Capacity: NN%</code> directly — no unit interpretation, no version drift. The <code>ioreg</code> route exists because Recovery on Apple Silicon often can&#39;t run <code>system_profiler SPPowerDataType</code> cleanly. If you&#39;re scripting against <code>ioreg</code> output, also be aware: Apple Silicon exposes companion fields (<code>AppleRawMaxCapacity</code>, <code>NominalChargeCapacity</code>, <code>DesignCapacity</code>) in mAh-style units alongside the percentage <code>MaxCapacity</code> — target each key by name, not by output ordering, since Apple has quietly renamed/added these between macOS releases.</p>
+<p><strong>Use <code>ioreg</code> in Recovery; prefer <code>system_profiler SPPowerDataType</code> everywhere else.</strong> Once the Mac is booted normally, <code>system_profiler SPPowerDataType</code> reports <code>Maximum Capacity: NN%</code> directly — no unit interpretation, no version drift. The <code>ioreg</code> route exists because Recovery on Apple Silicon often can&#39;t run <code>system_profiler SPPowerDataType</code> cleanly. When you do parse <code>ioreg</code>, target each key by name (<code>DesignCapacity</code>, <code>MaxCapacity</code>, <code>AppleRawMaxCapacity</code>, <code>CycleCount</code>) rather than by output ordering — Apple has quietly renamed and added these fields between macOS releases.</p>
 </blockquote>
 <hr>
 <h3 id="important-reality-check">Important Reality Check</h3>
-<p>Recovery battery reporting is unreliable on T2 and some Apple Silicon Macs — expect occasional missing or incomplete values. If data is missing, fall back to <a href="#4-battery-health-strategy">Battery Health Strategy</a>.</p>
+<p>Recovery battery reporting is unreliable on T2 and some Apple Silicon Macs — expect occasional missing or incomplete values. If data is missing, fall back to <a href="#6-battery-health-strategy">Battery Health Strategy</a>.</p>
 <hr>
 <h3 id="recommended-recovery-decision-tree">Recommended Recovery Decision Tree</h3>
 <h4 id="if-battery-data-appears-correctly">If battery data appears correctly</h4>
 <p>→ Record values and continue intake</p>
 <h4 id="if-battery-data-is-missing">If battery data is missing</h4>
-<p>→ Continue to <a href="#4-battery-health-strategy">4. Battery Health Strategy</a></p>
+<p>→ Continue to <a href="#6-battery-health-strategy">6. Battery Health Strategy</a></p>
 <hr>
-<h3 id="activation-lock--mdm-checks">Activation Lock &amp; MDM Checks</h3>
-<h4 id="activation-lock">Activation Lock</h4>
-<p>In Recovery (T2 Intel or Apple Silicon):</p>
+<h2 id="4-activation-lock--mdm-checks">4. Activation Lock &amp; MDM Checks</h2>
+<p>These are booted/logged-in checks, not Recovery steps — run them once you have macOS up (or read the status in Setup Assistant as noted below).</p>
+<h3 id="activation-lock">Activation Lock</h3>
+<p>Booted into macOS (logged in, via Terminal):</p>
 <pre><code class="language-bash">system_profiler SPHardwareDataType | grep -i &quot;activation&quot;
 </code></pre>
-<p>Logged in: System Settings → General → About → Activation Lock status.</p>
+<p>Returns <code>Activation Lock Status: Enabled</code> or <code>Disabled</code> (T2 Intel or Apple Silicon). You can also read the same status in System Settings → General → About.</p>
+<p><strong>This does not work reliably in Recovery.</strong> The Activation Lock field is populated by the running OS, so <code>system_profiler</code> in recoveryOS usually returns nothing — an empty result there tells you nothing about lock state. If you can&#39;t boot macOS, judge Activation Lock from Setup Assistant instead: being prompted to sign in with the previous owner&#39;s Apple ID during activation means the device is locked.</p>
 <p>If locked, the machine cannot be resold or fully wiped without the original owner&#39;s Apple ID. Stop intake and flag.</p>
 <blockquote>
-<p><strong>Pre-T2 Intel Macs (2017 and older) do not support Activation Lock.</strong> The command above returns nothing on those machines — that&#39;s expected, not a clean bill of health. Confirm the era from §5 before interpreting an empty result.</p>
+<p><strong>Pre-T2 Intel Macs (2017 and older) do not support Activation Lock.</strong> The command above returns nothing on those machines — that&#39;s expected, not a clean bill of health. Confirm the era from <a href="#7-apple-silicon-vs-intel-notes">§7</a> before interpreting an empty result.</p>
 </blockquote>
-<h4 id="mdm-enrollment">MDM Enrollment</h4>
-<p>Logged in:</p>
+<h3 id="mdm-enrollment">MDM Enrollment</h3>
+<p>Booted into macOS (logged in, via Terminal):</p>
 <pre><code class="language-bash">profiles status -type enrollment
 </code></pre>
+<p>The <code>profiles</code> binary does not exist in recoveryOS — running it there gives &quot;command not found.&quot; This is a booted-only check; if you can&#39;t boot macOS, use the Setup Assistant visual cue below instead.</p>
 <p>Look for:</p>
 <ul>
 <li><code>Enrolled via DEP: Yes</code> — device will re-enroll automatically after a wipe. Treat as MDM-locked.</li>
-<li><code>MDM enrollments: Yes</code> — currently managed.</li>
+<li><code>MDM enrollment: Yes</code> — currently managed. (Field is singular in the output; a clean machine reports <code>No</code> for both lines.)</li>
 </ul>
 <p>Visual cue (no login needed): if Setup Assistant shows a &quot;Remote Management&quot; screen, the device is DEP-supervised.</p>
 <p>If DEP-enrolled, the original org must release it from their MDM before resale.</p>
 <hr>
-<h2 id="4-battery-health-strategy">4. Battery Health Strategy</h2>
+<h2 id="5-firmware-password-unlock-intel-only">5. Firmware Password Unlock (Intel only)</h2>
+<p>A firmware password is the padlock prompt at boot that blocks Recovery, external boot, and startup-disk changes until the password is entered. <strong>Intel-based Macs only</strong> (pre-T2 and T2) — Apple Silicon has no firmware password; Apple moved that functionality into recoveryOS, gated by FileVault, so there&#39;s nothing to unlock here on an M-series Mac.</p>
+<p>The firmware password itself is supplied separately and is never stored in this doc.</p>
+<h3 id="entering-recovery">Entering Recovery</h3>
+<p>If the padlock prompt appears before Recovery loads, enter the firmware password there first — you can&#39;t reach the removal tools otherwise.</p>
+<h3 id="removing-the-password">Removing the Password</h3>
+<p>Two ways to turn it off; both need the firmware password. Pick by whether the Mac has a working admin account.</p>
+<p><strong>Terminal (Recovery) — works even with no macOS account.</strong> Use this when the disk is wiped/unknown, or when the GUI throws &quot;no admin found.&quot; The command authenticates against the firmware password itself, not a macOS account.</p>
+<pre><code class="language-bash"># In Recovery → Utilities → Terminal (already root, no sudo needed)
+firmwarepasswd -check     # confirm a password is set
+firmwarepasswd -delete    # prompts for the current firmware password, then clears it
+</code></pre>
+<p>Then restart. Re-run <code>firmwarepasswd -check</code> to confirm it reports no firmware password set.</p>
+<p><strong>GUI Startup Security Utility — needs a macOS admin account.</strong> Recovery → Utilities → <strong>Startup Security Utility</strong> → <strong>Turn Off Firmware Password</strong> → enter the firmware password. Use this when the Mac still has a working admin user.</p>
+<blockquote>
+<p><strong>&quot;No admin found&quot; / can&#39;t authenticate:</strong> Startup Security Utility asks for the <em>installed macOS admin password</em>, so on a wiped or account-less Mac it dead-ends. Use the Terminal method above instead — it doesn&#39;t touch macOS accounts.</p>
+</blockquote>
+<p>The same <code>firmwarepasswd -delete</code> flow works on both pre-T2 and T2 Macs when you know the password. (A <em>forgotten</em> firmware password is a different problem — it needs Apple&#39;s reset key or an Apple Configurator erase — and is out of scope here since the password is provided.)</p>
+<hr>
+<h2 id="6-battery-health-strategy">6. Battery Health Strategy</h2>
 <h3 id="current-best-practical-workflow">Current Best Practical Workflow</h3>
 <h4 id="preferred-path">Preferred Path</h4>
 <ol>
@@ -387,7 +486,7 @@ T2 / Apple Silicon:  MaxCapacity = 89  →  Battery health 89%
 <li>Battery telemetry may not</li>
 </ul>
 <hr>
-<h2 id="5-apple-silicon-vs-intel-notes">5. Apple Silicon vs Intel Notes</h2>
+<h2 id="7-apple-silicon-vs-intel-notes">7. Apple Silicon vs Intel Notes</h2>
 <p>Confirm architecture first via About This Mac, <code>uname -m</code> (<code>arm64</code> = Apple Silicon, <code>x86_64</code> = Intel), or visual cues (notch + flat sides = Apple Silicon Pro/Max). The table below summarizes the workflow differences that affect intake.</p>
 <table>
 <thead>
@@ -414,7 +513,7 @@ T2 / Apple Silicon:  MaxCapacity = 89  →  Battery health 89%
 <td>Battery telemetry in Recovery</td>
 <td><code>MaxCapacity</code> in raw mAh; reliable</td>
 <td><code>MaxCapacity</code> as percentage; sometimes missing</td>
-<td><code>MaxCapacity</code> as percentage; sometimes missing</td>
+<td><code>MaxCapacity</code> pinned ~100 — use <code>AppleRawMaxCapacity</code> (mAh); sometimes missing</td>
 </tr>
 <tr>
 <td>Activation Lock</td>
@@ -436,7 +535,7 @@ T2 / Apple Silicon:  MaxCapacity = 89  →  Battery health 89%
 </tr>
 </tbody></table>
 <hr>
-<h2 id="6-common-terminal-commands">6. Common Terminal Commands</h2>
+<h2 id="8-common-terminal-commands">8. Common Terminal Commands</h2>
 <h3 id="device-identifier-1">Device Identifier</h3>
 <pre><code class="language-bash">sysctl -n hw.model
 </code></pre>
@@ -495,7 +594,7 @@ T2 / Apple Silicon:  MaxCapacity = 89  →  Battery health 89%
 <pre><code class="language-bash">ioreg -l | grep -i IOPlatformSerialNumber
 </code></pre>
 <hr>
-<h2 id="7-recommended-intake-data-fields">7. Recommended Intake Data Fields</h2>
+<h2 id="9-recommended-intake-data-fields">9. Recommended Intake Data Fields</h2>
 <h3 id="core-fields">Core Fields</h3>
 <ul>
 <li>Serial Number</li>
