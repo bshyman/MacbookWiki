@@ -19,6 +19,7 @@
     --mb: #fca5a5;
     --row: #131722;
     --row-alt: #171c28;
+    --header-h: 165px;
   }
   @media (prefers-color-scheme: light) {
     :root {
@@ -59,9 +60,10 @@
   .controls.hidden { display: none; }
   .controls input[type=search], .controls select {
     background: var(--panel-2); color: var(--text); border: 1px solid var(--border);
-    border-radius: 8px; padding: 8px 12px; font: inherit; min-width: 220px;
+    border-radius: 8px; padding: 8px 12px; font: inherit; min-width: 172px;
   }
-  .controls input[type=search] { min-width: 320px; }
+  .controls input[type=search] { min-width: 300px; flex: 1 1 300px; max-width: 420px; }
+  .controls #identifier { min-width: 158px; }
   .controls label { color: var(--muted); font-size: 12px; display: inline-flex; gap: 6px; align-items: center; }
   .controls .count { margin-left: auto; color: var(--muted); font-size: 12px; }
   main { padding: 0 18px 40px; }
@@ -97,7 +99,11 @@ code { background: var(--panel-2); padding: 1px 5px; border-radius: 4px; font-si
   .term h2 { margin: 0 0 4px; font-size: 18px; letter-spacing: -0.01em; }
   .term .sub2 { color: var(--muted); font-size: 13px; margin-bottom: 14px; }
   .cmd-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 14px; }
-  .cmd-group { border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; background: var(--row); }
+  /* Deep links (#terminal-battery) land under the sticky header without --header-h,
+     which JS keeps in sync — the header wraps and its height moves with the viewport. */
+  .cmd-group { border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; background: var(--row);
+    scroll-margin-top: calc(var(--header-h) + 16px); }
+  .cmd-group:target { border-color: var(--accent); }
   .cmd-group h3 { margin: 0 0 10px; font-size: 14px; color: var(--accent-2); letter-spacing: 0.01em; }
   .cmd { padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px solid var(--border); }
   .cmd:last-child { padding-bottom: 0; margin-bottom: 0; border-bottom: 0; }
@@ -138,6 +144,11 @@ code { background: var(--panel-2); padding: 1px 5px; border-radius: 4px; font-si
   </nav>
   <div class="controls" id="controls">
     <input id="q" type="search" placeholder="Search anything — “A1989”, “MacBookPro15,2”, “M2 Max 16”, “Touch Bar”, “2021”…" autofocus />
+    <label>Identifier
+      <select id="identifier" title="Paste from sysctl -n hw.model">
+        <option value="">All</option>
+      </select>
+    </label>
     <label>Family
       <select id="family">
         <option value="">All</option>
@@ -172,7 +183,7 @@ code { background: var(--panel-2); padding: 1px 5px; border-radius: 4px; font-si
 <main>
   <section class="tab-panel" data-panel="models">
   <div class="legend">
-    <strong>How to find your machine:</strong> Apple menu &rarr; About This Mac &rarr; More Info shows the marketing name. For the precise Model Identifier, open Terminal and run <code>sysctl hw.model</code>. The A-number (model number) is engraved on the bottom of the chassis. EMC numbers are next to the regulatory marks.
+    <strong>How to find your machine:</strong> run <code>sysctl -n hw.model</code> in Terminal and pick the result from the <strong>Identifier</strong> filter above — that one value derives the Name, Model, and Year columns of the intake sheet. Apple menu &rarr; About This Mac &rarr; More Info shows the marketing name. The A-number (model number) is engraved on the bottom of the chassis. EMC numbers are next to the regulatory marks. Running intake on an unknown machine? Start at the <a href="/workflow.html">Assessment workflow</a>.
   </div>
 
   <div class="table-wrap">
@@ -199,65 +210,79 @@ code { background: var(--panel-2); padding: 1px 5px; border-radius: 4px; font-si
 
   <section class="tab-panel" data-panel="terminal" hidden>
   <section class="term">
-    <h2>Terminal commands for identification</h2>
-    <div class="sub2">Run these in Terminal.app (<code>/Applications/Utilities/Terminal.app</code>). Output examples are from a 2021 MacBook Pro 14" (M1 Pro).</div>
+    <h2>Terminal commands, by intake sheet column</h2>
+    <div class="sub2">Run these in Terminal.app (<code>/Applications/Utilities/Terminal.app</code>), or in Recovery via Utilities&nbsp;&rarr;&nbsp;Terminal. Output examples are from a MacBook Pro 14" (M3 Pro, <code>Mac15,6</code>) unless noted.</div>
+    <div class="sub2">Groups below are named after the intake sheet columns — <b>Name</b>, <b>Serial</b>, <b>Identifier</b>, <b>Model</b>, <b>Battery</b>, <b>Year</b>, <b>RAM</b>, <b>HD</b>, <b>CPU</b>, <b>Physical Issues</b>, <b>Functional Issues</b>, <b>Firmware Locked</b>, <b>OS Reset</b> — so &#8984;F for a column name lands on the command that fills it. The step-by-step procedure lives in the <a href="/workflow.html">Assessment workflow</a>.</div>
     <div class="cmd-grid">
 
-      <div class="cmd-group">
-        <h3>Model & serial</h3>
+      <div class="cmd-group" id="terminal-identifier">
+        <h3>Identifier &middot; Name &middot; Model &middot; Year</h3>
+        <div class="cmd-desc" style="margin:-4px 0 12px;">Four columns off one value. Get the Identifier, then read Name, Model, and Year out of the Models tab.</div>
         <div class="cmd">
-          <div class="cmd-row"><code>sysctl hw.model</code></div>
-          <div class="cmd-desc">Model Identifier — match this against the <b>Model Identifier</b> column above.</div>
-          <div class="cmd-out">hw.model: MacBookPro18,3</div>
+          <div class="cmd-row"><code>sysctl -n hw.model</code></div>
+          <div class="cmd-desc"><b>Identifier.</b> Works on every Mac in every state, including Recovery. Record it exactly as surfaced, then paste it into the <b>Identifier</b> filter on the Models tab.</div>
+          <div class="cmd-out">Mac15,6</div>
+        </div>
+        <div class="cmd">
+          <div class="cmd-row"><code>ioreg -l | grep -i '"product-name"'</code></div>
+          <div class="cmd-desc"><b>Name</b> — the family. Needed on Apple Silicon, where the Identifier (<code>Mac15,6</code>) names nothing; Intel Identifiers (<code>MacBookPro15,2</code>) already tell you. Works in Recovery, where <code>system_profiler</code> often doesn't.</div>
+          <div class="cmd-out">"product-name" = &lt;"MacBook Pro (14-inch, Nov 2023)"&gt;</div>
         </div>
         <div class="cmd">
           <div class="cmd-row"><code>system_profiler SPHardwareDataType</code></div>
-          <div class="cmd-desc">One-shot dump: model name, identifier, chip, cores, memory, serial, hardware UUID, and provisioning UDID. The single most useful command on this page.</div>
-        </div>
-        <div class="cmd">
-          <div class="cmd-row"><code>ioreg -l | grep -i platformserialnumber</code></div>
-          <div class="cmd-desc">Serial number, returned as a full <code>"IOPlatformSerialNumber" = "…"</code> line. The serial is also shown in the <code>system_profiler</code> output above, so you typically only need one of the two.</div>
+          <div class="cmd-desc">One-shot dump when booted: model name, identifier, chip, cores, memory, serial, hardware UUID, and Activation Lock status. The single most useful command on this page — but unreliable in Recovery.</div>
         </div>
       </div>
 
-      <div class="cmd-group">
-        <h3>CPU & architecture</h3>
+      <div class="cmd-group" id="terminal-serial">
+        <h3>Serial</h3>
         <div class="cmd">
-          <div class="cmd-row"><code>sysctl machdep.cpu.brand_string</code></div>
-          <div class="cmd-desc">CPU model string. On Intel: <code>Intel(R) Core(TM) i7-9750H…</code>. On Apple Silicon: <code>Apple M1 Pro</code> / <code>M2 Max</code> etc.</div>
+          <div class="cmd-row"><code>ioreg -l | grep -i IOPlatformSerialNumber</code></div>
+          <div class="cmd-desc">Works in Recovery and booted. Also printed on the chassis bottom, and included in the <code>system_profiler SPHardwareDataType</code> output above — you only need one of the two.</div>
+          <div class="cmd-out">"IOPlatformSerialNumber" = "RW2D0HDQRJ"</div>
         </div>
+      </div>
+
+      <div class="cmd-group" id="terminal-cpu">
+        <h3>CPU</h3>
         <div class="cmd">
-          <div class="cmd-row"><code>sysctl hw.ncpu</code></div>
-          <div class="cmd-desc">Total logical cores. For the P/E split on Apple Silicon, just read the <i>Total Number of Cores</i> line in the <code>system_profiler SPHardwareDataType</code> output — it's spelled out (e.g. "10 (8 performance and 2 efficiency)").</div>
+          <div class="cmd-row"><code>sysctl -n machdep.cpu.brand_string</code></div>
+          <div class="cmd-desc">On <b>Intel</b>, record the processor number — the token after <code>Core(TM)</code>, e.g. <code>i5-8210Y</code>. On <b>Apple Silicon</b> there is no SKU to parse: record the chip name as-is. If it returns nothing (some recoveryOS builds), derive the chip from the Identifier.</div>
+          <div class="cmd-out">Intel: Intel(R) Core(TM) i7-9750H CPU @ 2.60GHz &nbsp;·&nbsp; Apple: Apple M3 Pro</div>
         </div>
         <div class="cmd">
           <div class="cmd-row"><code>uname -m</code></div>
-          <div class="cmd-desc">Architecture: <code>arm64</code> = Apple Silicon, <code>x86_64</code> = Intel.</div>
+          <div class="cmd-desc">Architecture, and the fastest way to settle which column of the era table applies: <code>arm64</code> = Apple Silicon, <code>x86_64</code> = Intel.</div>
+        </div>
+        <div class="cmd">
+          <div class="cmd-row"><code>sysctl -n hw.ncpu</code></div>
+          <div class="cmd-desc">Total logical cores. For the P/E split on Apple Silicon, read the <i>Total Number of Cores</i> line in <code>system_profiler SPHardwareDataType</code> — it's spelled out (e.g. "11 (5 performance and 6 efficiency)").</div>
         </div>
       </div>
 
-      <div class="cmd-group">
-        <h3>Memory</h3>
+      <div class="cmd-group" id="terminal-ram">
+        <h3>RAM</h3>
         <div class="cmd">
-          <div class="cmd-row"><code>sysctl hw.memsize</code></div>
-          <div class="cmd-desc">Total RAM in <em>bytes</em>. Divide by 1073741824 for GB.</div>
-          <div class="cmd-out">hw.memsize: 17179869184  (16 GB)</div>
+          <div class="cmd-row"><code>sysctl -n hw.memsize</code></div>
+          <div class="cmd-desc">Total RAM in <em>bytes</em>, not GB. Match the number against the <a href="#sizes">Size reference</a> rather than doing the math.</div>
+          <div class="cmd-out">17179869184  (16 GB)</div>
         </div>
         <div class="cmd">
           <div class="cmd-row"><code>system_profiler SPMemoryDataType</code></div>
-          <div class="cmd-desc">RAM modules, speed, type (DDR4/LPDDR5/unified), and ECC status. On Apple Silicon, reports memory as on-chip (unified, not user-replaceable).</div>
+          <div class="cmd-desc">RAM modules, speed, type (DDR4/LPDDR5/unified), and ECC status. On Apple Silicon, reports memory as on-chip — unified, not user-replaceable.</div>
         </div>
       </div>
 
-      <div class="cmd-group">
-        <h3>Storage</h3>
+      <div class="cmd-group" id="terminal-hd">
+        <h3>HD</h3>
         <div class="cmd">
-          <div class="cmd-row"><code>diskutil info /</code></div>
-          <div class="cmd-desc">Boot volume report — scan the output for <i>Disk Size</i>, <i>Protocol</i>, and <i>SMART Status</i>. Covers most of what you'd want from <code>diskutil</code>.</div>
+          <div class="cmd-row"><code>diskutil info disk0</code></div>
+          <div class="cmd-desc">Scan for <i>Disk Size</i>, <i>Protocol</i>, and <i>SMART Status</i>. Disk Size reports raw formatted capacity, a few percent under the marketed size — round <b>up</b> to the nearest standard capacity (121&nbsp;GB&nbsp;&rarr;&nbsp;128&nbsp;GB, 500&nbsp;GB&nbsp;&rarr;&nbsp;512&nbsp;GB).</div>
+          <div class="cmd-out">Disk Size: 500.3 GB (500277792768 Bytes) · SMART Status: Verified</div>
         </div>
         <div class="cmd">
           <div class="cmd-row"><code>diskutil list</code></div>
-          <div class="cmd-desc">All disks and partitions. Useful for confirming the internal SSD is the only fixed disk and there's no leftover external volume mounted.</div>
+          <div class="cmd-desc">All disks and partitions. Confirms the internal SSD is the only fixed disk, and that no leftover external volume is mounted. An empty result here means the SSD was pulled or has failed — record <b>HD = none</b> and flag the unit.</div>
         </div>
         <div class="cmd">
           <div class="cmd-row"><code>system_profiler SPNVMeDataType</code></div>
@@ -265,96 +290,130 @@ code { background: var(--panel-2); padding: 1px 5px; border-radius: 4px; font-si
         </div>
       </div>
 
-      <div class="cmd-group">
-        <h3>Battery health</h3>
+      <div class="cmd-group" id="terminal-battery">
+        <h3>Battery</h3>
         <div class="cmd">
           <div class="cmd-row"><code>system_profiler SPPowerDataType</code></div>
-          <div class="cmd-desc">Battery report. Scan the output for <i>Cycle Count</i>, <i>Condition</i> (Normal / Service Recommended / Service Battery), and <i>Maximum Capacity</i>. Compare cycle count to the rated max in the Models tab's battery column.</div>
+          <div class="cmd-desc"><b>Use this whenever the Mac is booted.</b> Scan for <i>Cycle Count</i>, <i>Condition</i> (Normal / Service Recommended / Service Battery), and <i>Maximum Capacity</i> — reported as a percentage directly, no interpretation. Compare the cycle count to the rated max in the Models tab's battery column.</div>
           <div class="cmd-out">Cycle Count: 247 · Condition: Normal · Maximum Capacity: 92%</div>
         </div>
         <div class="cmd">
+          <div class="cmd-row"><code>ioreg -rc AppleSmartBattery | egrep "DesignCapacity|MaxCapacity|CycleCount"</code></div>
+          <div class="cmd-desc"><b>Use this in Recovery</b>, where <code>system_profiler SPPowerDataType</code> often won't run on Apple Silicon. The unit <code>MaxCapacity</code> reports differs by era, and Apple Silicon needs <code>AppleRawMaxCapacity</code> instead — see <a href="/workflow.html#step-7--battery-health">Battery health</a> for the interpretation rules and the health formula.</div>
+        </div>
+        <div class="cmd">
           <div class="cmd-row"><code>pmset -g batt</code></div>
-          <div class="cmd-desc">Current charge percentage, charging/discharging state, and time-to-full or time-to-empty estimate. Quick way to confirm the unit charges.</div>
+          <div class="cmd-desc">Current charge percentage, charging/discharging state, and time-to-full or time-to-empty. Quick way to confirm the unit actually charges.</div>
         </div>
       </div>
 
-      <div class="cmd-group">
-        <h3>Resale clearance checks</h3>
+      <div class="cmd-group" id="terminal-blockers">
+        <h3>Resale blockers &mdash; Activation Lock &amp; MDM</h3>
+        <div class="cmd-desc" style="margin:-4px 0 12px;">Both are <b>booted-only</b> checks; neither works in Recovery. Either one coming back positive stops intake.</div>
         <div class="cmd">
-          <div class="cmd-row"><code>system_profiler SPHardwareDataType</code></div>
-          <div class="cmd-desc"><b>Activation Lock</b> — the most important check. Look for the <i>Activation Lock Status</i> line in the output. <i>Enabled</i> means the unit is essentially bricked for resale until the previous owner signs out of iCloud and removes the device from Find My. Only T2 Intel Macs (2018+) and Apple Silicon report this line — pre-T2 Intel Macs (2017 and older) don't support Activation Lock at all, so the line is simply absent (a missing line is not the same as <i>Disabled</i>; check the era first).</div>
+          <div class="cmd-row"><code>system_profiler SPHardwareDataType | grep -i activation</code></div>
+          <div class="cmd-desc"><b>Activation Lock</b> — the most important check. <i>Enabled</i> means the unit is essentially bricked for resale until the previous owner signs out of iCloud and removes the device from Find My. Only T2 Intel (2018+) and Apple Silicon report this line — pre-T2 Intel doesn't support Activation Lock at all, so a missing line is not the same as <i>Disabled</i>. Check the era first.</div>
           <div class="cmd-out">Activation Lock Status: Disabled</div>
         </div>
+        <div class="cmd">
+          <div class="cmd-row"><code>sudo profiles status -type enrollment</code></div>
+          <div class="cmd-desc"><b>MDM / Apple Business Manager enrollment.</b> If <i>Enrolled via DEP: Yes</i> the Mac re-enrolls into a corporate MDM the moment it hits the internet — unsellable until the original org releases it. The <code>profiles</code> binary doesn't exist in recoveryOS; if you can't boot, a <b>Remote Management</b> screen in Setup Assistant is the same signal.</div>
+          <div class="cmd-out">Enrolled via DEP: No · MDM enrollments: None</div>
+        </div>
+      </div>
+
+      <div class="cmd-group" id="terminal-firmware-locked">
+        <h3>Firmware Locked</h3>
+        <div class="cmd-desc" style="margin:-4px 0 12px;"><b>Intel only.</b> Apple Silicon has no firmware password — record <code>N/A</code>. Run these in Recovery, where you're already root.</div>
+        <div class="cmd">
+          <div class="cmd-row"><code>firmwarepasswd -check</code></div>
+          <div class="cmd-desc">Reports whether a firmware password is set. You only get here if you already cleared the padlock prompt at boot — the password blocks Recovery itself.</div>
+        </div>
+        <div class="cmd">
+          <div class="cmd-row"><code>firmwarepasswd -delete</code></div>
+          <div class="cmd-desc">Prompts for the current firmware password, then clears it. Authenticates against the firmware, not a macOS account — so it works on a wiped Mac where Startup Security Utility dead-ends with "no admin found". Restart and re-run <code>-check</code> to confirm.</div>
+        </div>
+      </div>
+
+      <div class="cmd-group" id="terminal-os-reset">
+        <h3>OS Reset</h3>
+        <div class="cmd-desc" style="margin:-4px 0 12px;">The erase itself happens in Disk Utility — see <a href="/workflow.html#step-9--disk-utility">Step 9</a>. These verify the unit is actually clean afterwards.</div>
         <div class="cmd">
           <div class="cmd-row"><code>fdesetup status</code></div>
           <div class="cmd-desc"><b>FileVault</b> state. Should read <i>Off</i> on a wiped unit — otherwise the new owner inherits an encrypted disk they can't unlock.</div>
           <div class="cmd-out">FileVault is Off.</div>
         </div>
         <div class="cmd">
-          <div class="cmd-row"><code>sudo profiles status -type enrollment</code></div>
-          <div class="cmd-desc"><b>MDM / Apple Business Manager enrollment.</b> If <i>Enrolled via DEP: Yes</i> the Mac will re-enroll into a corporate MDM the moment it hits the internet — unsellable until removed from the original ABM/ASM org. Critical to catch before listing.</div>
-          <div class="cmd-out">Enrolled via DEP: No · MDM enrollments: None</div>
-        </div>
-        <div class="cmd">
-          <div class="cmd-row"><code>csrutil status</code></div>
-          <div class="cmd-desc"><b>System Integrity Protection.</b> Should be <i>enabled</i> on a properly reset Mac. <i>Disabled</i> means the previous owner was running developer-level tooling; not a deal-breaker but worth noting.</div>
-        </div>
-        <div class="cmd">
           <div class="cmd-row"><code>dscl . list /Users</code></div>
-          <div class="cmd-desc"><b>User accounts.</b> Long list — scroll past the entries beginning with <code>_</code> and the system accounts (<code>daemon</code>, <code>nobody</code>, <code>root</code>); what remains should be a single admin account on a properly wiped Mac. Multiple human names mean it wasn't erased.</div>
+          <div class="cmd-desc"><b>User accounts.</b> Long list — scroll past entries beginning with <code>_</code> and the system accounts (<code>daemon</code>, <code>nobody</code>, <code>root</code>); what remains should be a single admin account. Multiple human names mean it wasn't erased.</div>
         </div>
         <div class="cmd">
           <div class="cmd-row"><code>scutil --get ComputerName</code></div>
           <div class="cmd-desc"><b>Computer name.</b> A properly wiped Mac defaults to the model name (e.g. <code>MacBook Pro</code>). Personal names ("Sarah's MacBook Pro") mean the prior account wasn't removed.</div>
         </div>
+        <div class="cmd">
+          <div class="cmd-row"><code>csrutil status</code></div>
+          <div class="cmd-desc"><b>System Integrity Protection.</b> Should be <i>enabled</i> on a properly reset Mac. <i>Disabled</i> means the previous owner was running developer-level tooling — not a deal-breaker, but worth noting.</div>
+        </div>
+        <div class="cmd">
+          <div class="cmd-row"><code>sw_vers</code></div>
+          <div class="cmd-desc">macOS product name, version, and build number — confirms which OS the unit shipped out on.</div>
+          <div class="cmd-out">ProductVersion: 15.4 · BuildVersion: 24E5238b</div>
+        </div>
       </div>
 
-      <div class="cmd-group">
-        <h3>Hardware diagnostics</h3>
+      <div class="cmd-group" id="terminal-functional-issues">
+        <h3>Functional Issues</h3>
+        <div class="cmd-desc" style="margin:-4px 0 12px;">Start with Apple Diagnostics — no OS or password needed. Intel: power on holding <b>D</b>. Apple Silicon: hold power &rarr; <b>&#8984;D</b> from the Options screen. Record any reference codes, then confirm specific subsystems below.</div>
         <div class="cmd">
-          <div class="cmd-row"><code>diskutil info disk0</code></div>
-          <div class="cmd-desc"><b>SSD health.</b> Look for the <i>SMART Status</i> line — <i>Verified</i> is healthy, <i>Failing</i> means refurb only. Best on Intel + T2 Macs; Apple Silicon SSDs report TRIM rather than SMART.</div>
+          <div class="cmd-row"><code>diskutil info disk0 | grep -i smart</code></div>
+          <div class="cmd-desc"><b>SSD health.</b> <i>Verified</i> is healthy; <i>Failing</i> means refurb-or-parts only. Reported on Intel, T2, and Apple Silicon alike.</div>
+          <div class="cmd-out">SMART Status: Verified</div>
         </div>
         <div class="cmd">
           <div class="cmd-row"><code>ls /Library/Logs/DiagnosticReports</code></div>
           <div class="cmd-desc"><b>Recent kernel panics.</b> Look for files ending in <code>.panic</code> — an empty list (or just <code>.ips</code> files) is the goal. Multiple panics suggest failing RAM, a flaky board, or thermal issues.</div>
         </div>
         <div class="cmd">
-          <div class="cmd-row"><code>softwareupdate --list</code></div>
-          <div class="cmd-desc"><b>Pending updates / latest supported macOS.</b> Confirms the unit can install the current OS — a key data point when grading older Macs that may be EOL.</div>
-        </div>
-        <div class="cmd">
           <div class="cmd-row"><code>system_profiler SPCameraDataType</code></div>
-          <div class="cmd-desc"><b>FaceTime camera</b> enumeration. A missing camera entry is a strong signal of a board-level fault or aftermarket repair. Run <code>SPAudioDataType</code> for built-in mic/speakers.</div>
+          <div class="cmd-desc"><b>FaceTime camera</b> enumeration. A missing entry is a strong signal of a board-level fault or aftermarket repair. Run <code>SPAudioDataType</code> for built-in mic and speakers.</div>
         </div>
         <div class="cmd">
           <div class="cmd-row"><code>system_profiler SPAirPortDataType</code></div>
-          <div class="cmd-desc"><b>Wi-Fi module</b> details. Look for <i>Card Type</i>, <i>Firmware Version</i>, and <i>Country Code</i>. Confirms the wireless card is recognized — a frequent failure point on older units.</div>
+          <div class="cmd-desc"><b>Wi-Fi module.</b> Look for <i>Card Type</i>, <i>Firmware Version</i>, and <i>Country Code</i>. Confirms the wireless card is recognized — a frequent failure point on older units.</div>
         </div>
         <div class="cmd">
           <div class="cmd-row"><code>system_profiler SPThunderboltDataType</code></div>
-          <div class="cmd-desc"><b>Thunderbolt / USB-C controllers.</b> Lists each port and what's plugged in — quick way to verify all ports are alive without dock testing.</div>
+          <div class="cmd-desc"><b>Thunderbolt / USB-C controllers.</b> Lists each port and what's attached — quick way to verify all ports are alive without dock testing.</div>
+        </div>
+        <div class="cmd">
+          <div class="cmd-row"><code>system_profiler SPDisplaysDataType</code></div>
+          <div class="cmd-desc"><b>Display and GPU.</b> Built-in resolution, refresh rate, and colour profile, plus any attached external displays. Pair with a visual sweep for dead pixels and backlight bleed.</div>
+        </div>
+        <div class="cmd">
+          <div class="cmd-row"><code>softwareupdate --list</code></div>
+          <div class="cmd-desc"><b>Latest supported macOS.</b> Confirms the unit can install the current OS — a key data point when grading older Macs that may be EOL.</div>
         </div>
       </div>
 
-      <div class="cmd-group">
+      <div class="cmd-group" id="terminal-workflow">
         <h3>Quick grading workflow</h3>
-        <div class="cmd-desc" style="margin-bottom:10px;">Five short commands, run in order, fill out a complete intake/grading sheet. None require copy-paste. For the full intake decision tree — physical inspection, Recovery entry, Intel/T2/Apple Silicon nuances, battery-health strategy — see the <a href="/workflow.html">Assessment workflow</a>.</div>
+        <div class="cmd-desc" style="margin-bottom:10px;">Five commands, run in order on a <b>booted</b> Mac, fill out a complete intake sheet. For an unknown machine that won't boot — physical inspection, Recovery entry, disk selection, Intel/T2/Apple&nbsp;Silicon nuances — follow the <a href="/workflow.html">Assessment workflow</a> instead.</div>
         <div class="cmd">
           <div class="cmd-row"><code>system_profiler SPHardwareDataType</code></div>
-          <div class="cmd-desc"><b>1.</b> Model, identifier, chip, cores, RAM, serial, <i>and</i> Activation Lock status — all in one readable block.</div>
+          <div class="cmd-desc"><b>1.</b> Name, Identifier, chip, cores, RAM, Serial, <i>and</i> Activation Lock status — all in one readable block.</div>
         </div>
         <div class="cmd">
           <div class="cmd-row"><code>system_profiler SPPowerDataType</code></div>
           <div class="cmd-desc"><b>2.</b> Battery cycle count, condition, and maximum capacity.</div>
         </div>
         <div class="cmd">
-          <div class="cmd-row"><code>diskutil info /</code></div>
-          <div class="cmd-desc"><b>3.</b> Boot disk size and SMART status.</div>
+          <div class="cmd-row"><code>diskutil info disk0</code></div>
+          <div class="cmd-desc"><b>3.</b> HD size and SMART status.</div>
         </div>
         <div class="cmd">
-          <div class="cmd-row"><code>softwareupdate --list</code></div>
-          <div class="cmd-desc"><b>4.</b> Confirms the unit can still take the current macOS — affects resale value on older hardware.</div>
+          <div class="cmd-row"><code>sudo profiles status -type enrollment</code></div>
+          <div class="cmd-desc"><b>4.</b> The other resale blocker — DEP/MDM enrollment. Cheap to check, expensive to miss.</div>
         </div>
         <div class="cmd">
           <div class="cmd-row"><code>sudo sysdiagnose -f ~/Desktop</code></div>
@@ -362,17 +421,9 @@ code { background: var(--panel-2); padding: 1px 5px; border-radius: 4px; font-si
         </div>
       </div>
 
-      <div class="cmd-group">
-        <h3>Display, graphics, OS</h3>
-        <div class="cmd">
-          <div class="cmd-row"><code>system_profiler SPDisplaysDataType</code></div>
-          <div class="cmd-desc">Built-in display resolution, refresh rate, color profile, plus all attached external displays and GPU info.</div>
-        </div>
-        <div class="cmd">
-          <div class="cmd-row"><code>sw_vers</code></div>
-          <div class="cmd-desc">macOS product name, version, and build number — useful when correlating model age with the latest supported macOS.</div>
-          <div class="cmd-out">ProductVersion: 15.4 · BuildVersion: 24E5238b</div>
-        </div>
+      <div class="cmd-group" id="terminal-physical-issues">
+        <h3>Physical Issues</h3>
+        <div class="cmd-desc">No command produces this column — it's the visual inspection you do before powering on: cosmetic damage, screen condition, keyboard wear, missing screws, liquid damage indicators, engraving or stickers, charger included, SSD present. The checklist and the visual model-identification clues are in <a href="/workflow.html#step-1--physical-inspection">Step 1</a> of the Assessment workflow.</div>
       </div>
 
     </div>
@@ -971,9 +1022,35 @@ const DATA = [
 const tb = document.getElementById('tb');
 const countEl = document.getElementById('count');
 const q = document.getElementById('q');
+const ident = document.getElementById('identifier');
 const fam = document.getElementById('family');
 const era = document.getElementById('era');
 const size = document.getElementById('size');
+
+// --- Identifier filter -------------------------------------------------------
+// Rows carry one or more identifiers in a single string ("Mac15,6 (Pro) / Mac15,8
+// (Max)"), so pull the tokens out rather than filtering on the whole cell.
+// Longest-first alternation matters — plain MacBook would swallow MacBookPro.
+const ID_TOKEN = /(?:MacBookPro|MacBookAir|MacBook|Mac)\d+,\d+/g;
+
+function identifiersOf(row) {
+  return (row.modelId || '').match(ID_TOKEN) || [];
+}
+
+// Mac14,2 < Mac14,5 < Mac14,10 — localeCompare alone gets the minor wrong.
+function compareIdentifiers(a, b) {
+  const parse = s => {
+    const m = s.match(/^(\D+)(\d+),(\d+)$/);
+    return m ? [m[1], +m[2], +m[3]] : [s, 0, 0];
+  };
+  const [af, amaj, amin] = parse(a);
+  const [bf, bmaj, bmin] = parse(b);
+  return af.localeCompare(bf) || amaj - bmaj || amin - bmin;
+}
+
+ident.append(...[...new Set(DATA.flatMap(identifiersOf))]
+  .sort(compareIdentifiers)
+  .map(id => { const o = document.createElement('option'); o.textContent = id; return o; }));
 
 let sortKey = 'year';
 let sortDir = 1; // 1 asc, -1 desc
@@ -989,7 +1066,8 @@ function highlight(text, needle) {
   return escapeHtml(text).replace(re, '<span class="hl">$1</span>');
 }
 
-function rowMatches(row, terms, famVal, eraVal, sizeVal) {
+function rowMatches(row, terms, identVal, famVal, eraVal, sizeVal) {
+  if (identVal && !identifiersOf(row).includes(identVal)) return false;
   if (famVal && row.family !== famVal) return false;
   if (eraVal && row.era !== eraVal) return false;
   if (sizeVal && !(row.size || '').includes(sizeVal)) return false;
@@ -1002,11 +1080,12 @@ function rowMatches(row, terms, famVal, eraVal, sizeVal) {
 function render() {
   const needle = q.value.trim().toLowerCase();
   const terms = needle ? needle.split(/\s+/) : [];
+  const identVal = ident.value;
   const famVal = fam.value;
   const eraVal = era.value;
   const sizeVal = size.value;
 
-  const filtered = DATA.filter(r => rowMatches(r, terms, famVal, eraVal, sizeVal));
+  const filtered = DATA.filter(r => rowMatches(r, terms, identVal, famVal, eraVal, sizeVal));
 
   filtered.sort((a,b) => {
     const av = a[sortKey], bv = b[sortKey];
@@ -1020,7 +1099,7 @@ function render() {
     <tr>
       <td class="name">${highlight(r.name, needle)}</td>
       <td>${r.year}</td>
-      <td class="modelid">${highlight(r.modelId, needle)}</td>
+      <td class="modelid">${highlight(r.modelId, needle || identVal.toLowerCase())}</td>
       <td class="modelnum">${highlight(r.modelNumber, needle)}</td>
       <td class="cpu">${highlight(r.cpu, needle)}</td>
       <td class="ram">${highlight(r.ram, needle)}</td>
@@ -1045,13 +1124,13 @@ document.querySelectorAll('thead th').forEach(th => {
   });
 });
 
-[q, fam, era, size].forEach(el => el.addEventListener('input', () => { render(); saveState(); }));
+[q, ident, fam, era, size].forEach(el => el.addEventListener('input', () => { render(); saveState(); }));
 
 // persist filter state across reloads
 function saveState() {
   try {
     localStorage.setItem('mbid-state', JSON.stringify({
-      q: q.value, fam: fam.value, era: era.value, size: size.value, sortKey, sortDir
+      q: q.value, ident: ident.value, fam: fam.value, era: era.value, size: size.value, sortKey, sortDir
     }));
   } catch (_) {}
 }
@@ -1059,6 +1138,7 @@ function loadState() {
   try {
     const s = JSON.parse(localStorage.getItem('mbid-state') || '{}');
     if (s.q) q.value = s.q;
+    if (s.ident) ident.value = s.ident;
     if (s.fam) fam.value = s.fam;
     if (s.era) era.value = s.era;
     if (s.size) size.value = s.size;
@@ -1075,27 +1155,58 @@ const VALID_TABS = ['models', 'terminal', 'sizes'];
 const tabButtons = document.querySelectorAll('nav.tabs button.tab');
 const tabPanels  = document.querySelectorAll('.tab-panel');
 const controlsEl = document.getElementById('controls');
-function setTab(name) {
+// The header is sticky and wraps at narrow widths, so its height drives how far
+// deep-linked groups need to clear it. Keep --header-h honest.
+const headerEl = document.querySelector('header');
+const syncHeaderHeight = () => {
+  document.documentElement.style.setProperty('--header-h', headerEl.offsetHeight + 'px');
+};
+syncHeaderHeight();
+if (window.ResizeObserver) new ResizeObserver(syncHeaderHeight).observe(headerEl);
+else window.addEventListener('resize', syncHeaderHeight);
+
+// A hash may deep-link into a group inside a tab: "#terminal-battery" = tab
+// "terminal", element "terminal-battery". Split on the first hyphen.
+function parseHash(hash) {
+  const raw = (hash || '').replace(/^#/, '');
+  const tab = raw.split('-')[0];
+  return VALID_TABS.includes(tab) ? { tab, target: raw.includes('-') ? raw : null } : null;
+}
+
+function setTab(name, target) {
   if (!VALID_TABS.includes(name)) name = 'models';
   tabButtons.forEach(b => b.classList.toggle('active', b.dataset.tab === name));
   tabPanels.forEach(p => { p.hidden = (p.dataset.panel !== name); });
   // Search controls only make sense on the Models tab
   controlsEl.classList.toggle('hidden', name !== 'models');
   // Reflect tab in URL hash (so deep links / sharing work); default tab clears the hash
-  const targetHash = name === 'models' ? '' : '#' + name;
+  const targetHash = target ? '#' + target : (name === 'models' ? '' : '#' + name);
   if (location.hash !== targetHash) {
     history.replaceState(null, '', location.pathname + location.search + targetHash);
   }
   try { localStorage.setItem('mbid-tab', name); } catch (_) {}
+  // Scroll after the panel unhides — a hidden element has no position to scroll to.
+  // Showing/hiding the controls resizes the header, so re-measure before scrolling.
+  if (target) {
+    const el = document.getElementById(target);
+    if (el) requestAnimationFrame(() => {
+      syncHeaderHeight();
+      el.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    });
+  }
 }
 tabButtons.forEach(b => b.addEventListener('click', () => setTab(b.dataset.tab)));
-window.addEventListener('hashchange', () => setTab(location.hash.replace(/^#/, '')));
+window.addEventListener('hashchange', () => {
+  const h = parseHash(location.hash);
+  setTab(h ? h.tab : 'models', h && h.target);
+});
 
 // Initial tab priority: URL hash > localStorage > default
-const hashTab = location.hash.replace(/^#/, '');
+const initial = parseHash(location.hash);
 let savedTab = null;
 try { savedTab = localStorage.getItem('mbid-tab'); } catch (_) {}
-setTab(VALID_TABS.includes(hashTab) ? hashTab : (VALID_TABS.includes(savedTab) ? savedTab : 'models'));
+if (initial) setTab(initial.tab, initial.target);
+else setTab(VALID_TABS.includes(savedTab) ? savedTab : 'models');
 
 // --- RAM size reference -----------------------------------------------------
 const RAM_SIZES = [1, 2, 3, 4, 6, 8, 12, 16, 18, 24, 32, 36, 48, 64, 96, 128];
