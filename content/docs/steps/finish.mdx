@@ -1,0 +1,27 @@
+---
+title: 10. Finish the Sheet
+description: Fill remaining gaps, confirm every column has a value, and flag anything that blocks resale.
+---
+
+Walk the columns and confirm each has a value. Anything still blank has a home in the [Column Index](/docs/reference/column-index).
+
+| Column | Filled by |
+| --- | --- |
+| Name, Model, Year | Identifier lookup — [model lookup](/) |
+| Serial, Identifier, RAM, HD, CPU | [Step 6](/docs/steps/intake-commands) |
+| Battery | [Step 7](/docs/steps/battery-health) |
+| Physical Issues, Functional Issues | [Step 1](/docs/steps/physical-inspection) |
+| Firmware Locked | [Step 3](/docs/steps/firmware-password) — `No` if you never saw a padlock |
+| OS Reset | [Step 9](/docs/steps/disk-utility) |
+| Processed At, Ingested By | You |
+
+## Blockers — Stop and Flag
+
+<Callout type="error" title="Any of these stops intake">
+  - **Activation Lock: Enabled** — unsellable without the previous owner's Apple ID
+  - **Enrolled via DEP: Yes** — re-enrolls into someone else's MDM the moment it goes online
+  - **Firmware password you don't have** — needs Apple's reset key or an Apple Configurator erase
+  - **SMART: Failing**, or no internal disk detected — parts unit
+</Callout>
+
+Everything else is a grading note, not a blocker.

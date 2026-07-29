@@ -1,0 +1,38 @@
+---
+title: 6. Run the Intake Commands
+description: Six commands fill eight columns. Terminal in Recovery, or Terminal.app when booted.
+---
+
+Open Terminal: **Recovery → Utilities menu → Terminal**. Disk Utility is in the main macOS Utilities window; Terminal is only in the menu bar.
+
+Booted into macOS instead? Use `/Applications/Utilities/Terminal.app` — everything below works there too, and more reliably.
+
+```bash
+sysctl -n hw.model                                # → Identifier (then Name, Model, Year)
+ioreg -l | grep -i '"product-name"'               # → Name
+sysctl -n machdep.cpu.brand_string                # → CPU
+sysctl -n hw.memsize                              # → RAM
+diskutil info disk0 | grep "Disk Size"            # → HD
+ioreg -l | grep -i IOPlatformSerialNumber         # → Serial
+```
+
+Full detail and per-column caveats: [Column Index](/docs/reference/column-index).
+
+## The Identifier Is the Key
+
+`sysctl -n hw.model` is the one value you always get, on every Mac, in every state. Record it exactly as surfaced — `MacBookAir8,1`, no spaces around the comma, matching the original casing — then paste it into the **Identifier** filter on the [model lookup](/) to derive **Name**, **Model**, and **Year** without touching the machine again.
+
+## Apple Silicon Doesn't Give You a Model or CPU the Way Intel Does
+
+On an Intel Mac the CPU is a distinct part you record separately — `sysctl -n machdep.cpu.brand_string` returns `Intel(R) Core(TM) i5-8210Y CPU @ 1.60GHz` and you pull the processor number `i5-8210Y` out of it. Two Macs sharing one Identifier can carry different CPUs, so the field carries real information.
+
+On Apple Silicon none of that holds:
+
+- **There is no CPU SKU.** The command returns `Apple M3 Pro` — a chip name, not a part number. It's already implied by the Identifier. Record the chip name and move on; there's nothing to parse.
+- **The Identifier stops naming the family.** Intel Macs report `MacBookPro15,2` — you can read "MacBook Pro" straight off it. M-series Macs report `Mac15,6`, which names nothing. Use `ioreg -l | grep -i '"product-name"'` to get the family, or look the Identifier up.
+- **There's no Intel-style model distinction.** The A-number is still engraved on the chassis, but configurations don't vary the way Intel's did — derive it from the Identifier.
+
+<Callout title="Which era am I on?">
+  `uname -m` settles it: `arm64` = Apple Silicon, `x86_64` = Intel. Full differences in
+  [Apple Silicon vs Intel](/docs/reference/apple-silicon-vs-intel).
+</Callout>

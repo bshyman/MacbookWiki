@@ -1,0 +1,52 @@
+---
+title: Intake Workflow
+description: Standardize intake and hardware assessment for MacBooks in unknown states while minimizing setup time.
+---
+
+Work top to bottom. If you're unsure where you are, go to [Power On and Read the Screen](/docs/steps/device-state) and read the screen.
+
+## The Intake Sheet
+
+Everything in this guide exists to fill these columns. Each one links to the command that produces it.
+
+| Column | Where it comes from |
+| --- | --- |
+| [Name](/docs/reference/column-index#name) | Family — MacBook Pro / MacBook Air / MacBook |
+| [Serial](/docs/reference/column-index#serial) | `ioreg -l \| grep -i IOPlatformSerialNumber` |
+| [Identifier](/docs/reference/column-index#identifier) | `sysctl -n hw.model` |
+| [Model](/docs/reference/column-index#model) | A-number — chassis engraving, or Identifier lookup |
+| [Battery](/docs/reference/column-index#battery) | `ioreg -rc AppleSmartBattery` — health % and cycle count |
+| [Year](/docs/reference/column-index#year) | Derived from the Identifier |
+| [RAM](/docs/reference/column-index#ram) | `sysctl -n hw.memsize` |
+| [HD](/docs/reference/column-index#hd) | `diskutil info disk0` |
+| [CPU](/docs/reference/column-index#cpu) | `sysctl -n machdep.cpu.brand_string` |
+| [Physical Issues](/docs/reference/column-index#physical-issues) | Visual inspection — [Step 1](/docs/steps/physical-inspection) |
+| [Functional Issues](/docs/reference/column-index#functional-issues) | Power-on checks and Apple Diagnostics — [Step 1](/docs/steps/physical-inspection) |
+| [Firmware Locked](/docs/reference/column-index#firmware-locked) | `firmwarepasswd -check` (Intel only) |
+| [OS Reset](/docs/reference/column-index#os-reset) | Disk Utility → Erase — [Step 9](/docs/steps/disk-utility) |
+| [Processed At](/docs/reference/column-index#processed-at--ingested-by) | Manual — date/time you finished |
+| [Ingested By](/docs/reference/column-index#processed-at--ingested-by) | Manual — your name |
+
+<Callout title="Get the Identifier first">
+  **Name**, **Model**, and **Year** all derive from the Identifier. Run `sysctl -n hw.model`, paste
+  the result into the [model lookup](/) Identifier filter, and three columns fill themselves.
+</Callout>
+
+## Steps at a Glance
+
+1. [**Physical Inspection**](/docs/steps/physical-inspection) — cosmetic condition, visual model clues, power-on checks. → *Physical Issues, Functional Issues*
+2. [**Power On and Read the Screen**](/docs/steps/device-state) — five possible screens, each routing somewhere different.
+3. [**Firmware Password**](/docs/steps/firmware-password) — only if you hit a padlock. Intel only. → *Firmware Locked*
+4. [**Enter Recovery**](/docs/steps/enter-recovery) — Cmd+R on Intel, power-hold on Apple Silicon.
+5. [**Select the Disk and Volume**](/docs/steps/disk-and-volume) — pick a volume, or find out there isn't one.
+6. [**Run the Intake Commands**](/docs/steps/intake-commands) — Terminal. → *Name, Serial, Identifier, Model, Year, RAM, HD, CPU*
+7. [**Battery Health**](/docs/steps/battery-health) — `ioreg` in Recovery, `system_profiler` when booted. → *Battery*
+8. [**Activation Lock and MDM**](/docs/steps/activation-lock-mdm) — the two things that make a unit unsellable.
+9. [**Disk Utility**](/docs/steps/disk-utility) — verify capacity, check SMART, erase. → *OS Reset*
+10. [**Finish the Sheet**](/docs/steps/finish) — fill gaps, flag blockers.
+
+## Reference
+
+- [Column Index](/docs/reference/column-index) — every command, keyed to the sheet column it fills
+- [Apple Silicon vs Intel](/docs/reference/apple-silicon-vs-intel) — the differences that affect intake
+- [Model lookup](/) — derive Name, Model, and Year from an Identifier

@@ -1,0 +1,19 @@
+---
+title: Apple Silicon vs Intel
+description: The era differences that actually affect intake — recovery entry, battery telemetry, locks, and erase safety.
+---
+
+Confirm the architecture first: `uname -m` (`arm64` = Apple Silicon, `x86_64` = Intel), About This Mac, or the visual cues in [Step 1](/docs/steps/physical-inspection).
+
+| Aspect | Intel pre-T2 (2017 & older) | Intel T2 (2018–2020) | Apple Silicon (M1+, 2020+) |
+| --- | --- | --- | --- |
+| Recovery entry | Power on holding ⌘R | Power on holding ⌘R; may prompt for admin password | Hold power until "Loading startup options" |
+| Recovery Terminal | Open access | Disk access may require auth | Requires admin password for boot volume |
+| Identifier names the family | Yes — `MacBookPro11,3` | Yes — `MacBookPro15,2` | No — `Mac15,6` |
+| CPU field | Intel processor number (`i5-8210Y`) | Intel processor number | Chip name only (`Apple M3 Pro`) — no SKU |
+| Battery telemetry in Recovery | `MaxCapacity` in raw mAh; reliable | `MaxCapacity` as percentage; sometimes missing | `MaxCapacity` pinned ~100 — use `AppleRawMaxCapacity` (mAh); sometimes missing |
+| Firmware password | Yes | Yes | None — FileVault gates recoveryOS instead |
+| Activation Lock | Not supported | Possible (T2 + Apple ID) | Possible (Secure Enclave + Apple ID) |
+| External boot | Straightforward | Blocked if firmware password set or external boot disallowed | Requires "Reduced Security" + admin auth |
+| Safe to erase whole physical disk | Yes | No — erase the volume group | No — erase the volume group |
+| Apple Diagnostics | Power on holding D | Power on holding D | Hold power → ⌘D from Options screen |

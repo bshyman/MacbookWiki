@@ -1,0 +1,16 @@
+{
+  "title": "Steps",
+  "defaultOpen": true,
+  "pages": [
+    "physical-inspection",
+    "device-state",
+    "firmware-password",
+    "enter-recovery",
+    "disk-and-volume",
+    "intake-commands",
+    "battery-health",
+    "activation-lock-mdm",
+    "disk-utility",
+    "finish"
+  ]
+}

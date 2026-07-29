@@ -1,0 +1,59 @@
+---
+title: 9. Disk Utility
+description: Verify capacity, check SMART, run First Aid, and erase — fills the HD and OS Reset columns.
+---
+
+Open it from the **macOS Utilities** window — not the Utilities menu, that's where Terminal lives.
+
+## First: View → Show All Devices
+
+<Callout type="warn" title="This is off by default and it matters">
+  Disk Utility defaults to **Show Only Volumes**, which hides the physical disk and shows only the
+  mounted volumes inside it. That's why capacity often looks wrong — a volume in an APFS container
+  reports the container's shared free space, not the drive's size.
+</Callout>
+
+Turn on **View → Show All Devices** before reading anything. The sidebar then nests correctly:
+
+```text
+APPLE SSD AP0512Z          ← physical device: read capacity + SMART here
+  └─ Container disk1       ← APFS container
+       ├─ Macintosh HD          ← system volume
+       └─ Macintosh HD - Data   ← user data volume
+```
+
+## Verify Capacity (HD)
+
+Select the **physical device** row — the top-level one with the SSD's model name. Read **Capacity**, and cross-check it against `diskutil info disk0` from [Step 6](/docs/steps/intake-commands). Round up to the nearest standard size; see [HD](/docs/reference/column-index#hd) for the table.
+
+## Check SMART Status
+
+The physical device row also shows **S.M.A.R.T. status**. `Verified` is healthy; `Failing` means refurb-or-parts only, and belongs in **Functional Issues**.
+
+## Run First Aid
+
+Select the container, then each volume, and run **First Aid** on each. Run it bottom-up — volumes first, then the container, then the physical device. Errors it can't repair mean the volume needs erasing.
+
+This is the fix to try when [Step 5](/docs/steps/disk-and-volume) found a `Macintosh HD` that exists but won't boot.
+
+## Erase (OS Reset)
+
+Only after [Step 8](/docs/steps/activation-lock-mdm) comes back clean.
+
+<Callout type="error" title="Erasing does not clear Activation Lock or DEP">
+  A locked machine erased is still a locked machine, now with no OS on it.
+</Callout>
+
+<Callout type="warn" title="Don't erase the whole physical disk on T2 or Apple Silicon">
+  Select the **`Macintosh HD` volume group** and use *Erase Volume Group*. Erasing the physical
+  device on these machines destroys the container that holds recoveryOS, and recovering from that
+  needs internet Recovery or an Apple Configurator revive.
+</Callout>
+
+On pre-T2 Intel, erasing the physical device is safe. Use:
+
+- **Format:** APFS (macOS 10.13+) or Mac OS Extended (Journaled) for older
+- **Scheme:** GUID Partition Map — only offered when erasing the physical device
+- **Name:** `Macintosh HD`
+
+Delete any leftover extra volumes or containers with the **–** button so the unit ships with one clean container. Then reinstall macOS from the macOS Utilities window and record **OS Reset = Yes**.

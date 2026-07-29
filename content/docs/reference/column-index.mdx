@@ -1,0 +1,212 @@
+---
+title: Column Index
+description: Every command, keyed to the intake sheet column it fills. Headings match the column names exactly.
+---
+
+One entry per intake sheet column. Headings match the column names exactly, so searching a column name lands here.
+
+## Name
+
+The family: `MacBook Pro`, `MacBook Air`, or `MacBook`.
+
+```bash
+ioreg -l | grep -i '"product-name"'
+```
+
+```text
+"product-name" = <"MacBook Pro (14-inch, Nov 2023)">
+```
+
+Works in recoveryOS, where `system_profiler` frequently doesn't. Booted into macOS, `system_profiler SPHardwareDataType` reports the same thing on its **Model Name** line.
+
+Intel Identifiers name the family themselves (`MacBookPro15,2` → MacBook Pro). Apple Silicon ones don't (`Mac15,6` names nothing) — use the command above or look the Identifier up.
+
+## Serial
+
+```bash
+ioreg -l | grep -i IOPlatformSerialNumber
+```
+
+```text
+"IOPlatformSerialNumber" = "RW2D0HDQRJ"
+```
+
+Works in Recovery and booted. Also printed on the chassis bottom, and included in `system_profiler SPHardwareDataType` when booted.
+
+## Identifier
+
+```bash
+sysctl -n hw.model
+```
+
+```text
+Mac15,6
+```
+
+Record it exactly as surfaced — `MacBookAir8,1`, no spaces around the comma, matching the original casing. The [model lookup](/) keys on this exact string, and its **Identifier** filter takes it directly.
+
+<Callout title="The highest-value single value on the sheet">
+  **Name**, **Model**, and **Year** all derive from the Identifier.
+</Callout>
+
+## Model
+
+The A-number — `A1989`, `A2442`. Engraved on the bottom of the chassis next to the regulatory marks, readable without powering the unit on.
+
+If the engraving is worn or the bottom case was replaced, look the [Identifier](#identifier) up on the [model lookup](/) and read the **Model Number** column.
+
+<Callout type="info" title="Apple Silicon has no Intel-style model/CPU split">
+  Intel Macs sharing one Identifier could ship different CPUs, so Model and CPU carried separate
+  information. On M-series the Identifier pins the chip, so derive the A-number from the lookup and
+  don't expect the fields to disambiguate anything.
+</Callout>
+
+Some rows list an A-number per screen size (`A1278 (13") / A1286 (15")`) — pick by the display size you measured in [Step 1](/docs/steps/physical-inspection).
+
+## Battery
+
+```bash
+# Recovery
+ioreg -rc AppleSmartBattery | egrep "DesignCapacity|MaxCapacity|CycleCount"
+
+# Booted into macOS — preferred
+system_profiler SPPowerDataType
+```
+
+Record health % and cycle count. The unit `MaxCapacity` reports differs by era, and Apple Silicon needs `AppleRawMaxCapacity` instead — full interpretation and the health formula are in [Step 7](/docs/steps/battery-health).
+
+Rated maximum cycles by model are in the **Battery** column of the [model lookup](/).
+
+## Year
+
+Derived from the [Identifier](#identifier) via the [model lookup](/) — the **Year** column.
+
+Not reliably available from any command: `sysctl` reports the Identifier, not a release date, and the serial number's date encoding was dropped for randomized serials in 2021.
+
+## RAM
+
+```bash
+sysctl -n hw.memsize
+```
+
+```text
+17179869184
+```
+
+Raw **bytes**, not GB. Match the number against the table rather than doing the math:
+
+| Bytes | RAM |
+| --- | --- |
+| 4294967296 | 4 GB |
+| 8589934592 | 8 GB |
+| 17179869184 | 16 GB |
+| 25769803776 | 24 GB |
+| 34359738368 | 32 GB |
+| 68719476736 | 64 GB |
+
+Apple Silicon reports unified memory here the same way — the number means the same thing, it just isn't upgradeable.
+
+## HD
+
+```bash
+diskutil info disk0 | grep "Disk Size"
+```
+
+```text
+Disk Size: 500.3 GB (500277792768 Bytes)
+```
+
+`Disk Size` reports raw formatted capacity, which reads a few percent under the marketed size. Round **up** to the nearest standard capacity:
+
+| Disk Size shows | Record as |
+| --- | --- |
+| ~121 GB | 128 GB |
+| ~251 GB | 256 GB |
+| ~500 GB | 512 GB |
+| ~1.0 TB (1000 GB) | 1 TB |
+| ~2.0 TB | 2 TB |
+
+Drop the `| grep` to also see **SMART Status** and the SSD's model name. Cross-check in Disk Utility with **Show All Devices** on — see [Step 9](/docs/steps/disk-utility).
+
+If no internal disk is listed, record **HD = none** and flag the unit.
+
+## CPU
+
+```bash
+sysctl -n machdep.cpu.brand_string
+```
+
+<Tabs items={['Intel', 'Apple Silicon']}>
+  <Tab value="Intel">
+
+Record the **processor number** — the token right after `Core(TM)`. Drop the `Intel(R) Core(TM)` prefix and the trailing `CPU @ …GHz`:
+
+```text
+Intel(R) Core(TM) i5-8210Y CPU @ 1.60GHz   →   record: i5-8210Y
+```
+
+  </Tab>
+  <Tab value="Apple Silicon">
+
+Record the chip name as-is. There is no SKU:
+
+```text
+Apple M3 Pro   →   record: Apple M3 Pro
+```
+
+If the command returns nothing (some recoveryOS builds), derive the chip from the [Identifier](#identifier) via the [model lookup](/) — on Apple Silicon the Identifier determines the chip.
+
+  </Tab>
+</Tabs>
+
+Confirm the architecture with `uname -m`: `arm64` = Apple Silicon, `x86_64` = Intel.
+
+## Physical Issues
+
+No command. Visual inspection from [Step 1](/docs/steps/physical-inspection): cosmetic damage, screen condition, keyboard, missing screws, liquid damage indicators, engraving, missing charger, missing SSD.
+
+## Functional Issues
+
+Power-on checks from [Step 1](/docs/steps/physical-inspection), plus Apple Diagnostics (Intel: hold **D**; Apple Silicon: hold power → **⌘D**) — record any reference codes.
+
+Booted into macOS, these confirm specific subsystems:
+
+```bash
+diskutil info disk0 | grep -i smart          # SSD health
+system_profiler SPCameraDataType             # camera present?
+system_profiler SPAirPortDataType            # Wi-Fi card recognized?
+system_profiler SPThunderboltDataType        # ports alive
+system_profiler SPDisplaysDataType           # display + GPU
+ls /Library/Logs/DiagnosticReports           # .panic files = failing RAM / board / thermals
+softwareupdate --list                        # latest supported macOS
+```
+
+## Firmware Locked
+
+```bash
+firmwarepasswd -check
+```
+
+**Intel only.** Run it in Recovery — you're already root, no `sudo` needed. Apple Silicon has no firmware password; record `N/A`.
+
+`No` if you never saw a padlock at boot. If you did, see [Step 3](/docs/steps/firmware-password) for removal.
+
+## OS Reset
+
+Disk Utility → **Erase Volume Group** on `Macintosh HD`, then reinstall macOS from the macOS Utilities window. Full procedure and the T2/Apple Silicon warning: [Step 9](/docs/steps/disk-utility).
+
+These verify the unit is actually clean afterwards:
+
+```bash
+fdesetup status            # FileVault — should read Off
+dscl . list /Users         # one admin account, no leftover human names
+scutil --get ComputerName  # should default to the model name
+csrutil status             # SIP should be enabled
+sw_vers                    # which macOS it shipped out on
+```
+
+Erasing does **not** clear Activation Lock or DEP enrollment — check [Step 8](/docs/steps/activation-lock-mdm) first.
+
+## Processed At / Ingested By
+
+Manual. Date/time you finished intake, and your name.
