@@ -16,8 +16,8 @@ export interface IntakeRecord {
   model: string | null;
   year: number | null;
   cpu: string | null;
-  ram_bytes: string | null;
-  hd_bytes: string | null;
+  ram_bytes: number | null;
+  hd_bytes: number | null;
   battery_health: number | null;
   battery_cycles: number | null;
   physical_issues: string | null;

@@ -13,9 +13,9 @@ const BLOCKER_LABELS: Record<string, string> = {
   'smart-failing': 'SMART failing',
 };
 
-function gb(bytes: string | null, base: 1024 | 1000) {
+function gb(bytes: number | null, base: 1024 | 1000) {
   if (bytes === null) return '—';
-  const n = Number(bytes);
+  const n = bytes;
   if (n === 0) return 'None';
   if (base === 1000 && n >= 1000 ** 4) return `${n / 1000 ** 4} TB`;
   return `${Math.round(n / base ** 3)} GB`;
@@ -56,12 +56,12 @@ export default async function RecordsPage(props: PageProps<'/records'>) {
         </p>
       ) : (
         <div className="mt-6 overflow-x-auto rounded-xl border border-fd-border">
-          <table className="w-full min-w-[1100px] text-sm">
+          <table className="w-full min-w-[1200px] text-sm">
             <thead>
               <tr className="border-b border-fd-border bg-fd-card text-left">
-                {['#', 'Name', 'Serial', 'Identifier', 'Model', 'Year', 'RAM', 'HD', 'Battery', 'Locks', 'Processed', 'By'].map(
-                  (h) => (
-                    <th key={h} className="whitespace-nowrap px-3 py-2.5 font-semibold">
+                {['#', 'Name', 'Serial', 'Identifier', 'Model', 'Year', 'RAM', 'HD', 'Battery', 'Locks', 'Processed', 'By', ''].map(
+                  (h, i) => (
+                    <th key={h || i} className="whitespace-nowrap px-3 py-2.5 font-semibold">
                       {h}
                     </th>
                   ),
@@ -90,7 +90,7 @@ export default async function RecordsPage(props: PageProps<'/records'>) {
                       )}
                       {r.supersedes_id && (
                         <span
-                          className="ml-1.5 rounded bg-fd-secondary px-1.5 py-0.5 text-[10px] uppercase"
+                          className="ml-1.5 cursor-help rounded bg-fd-primary/15 px-1.5 py-0.5 text-[10px] uppercase text-fd-primary"
                           title={r.correction_note ?? undefined}
                         >
                           corrects #{r.supersedes_id}
@@ -130,6 +130,23 @@ export default async function RecordsPage(props: PageProps<'/records'>) {
                       {new Date(r.processed_at).toLocaleString()}
                     </td>
                     <td className="whitespace-nowrap px-3 py-2.5">{r.ingested_by}</td>
+                    <td className="whitespace-nowrap px-3 py-2.5 text-right">
+                      {superseded ? (
+                        <span
+                          className="text-xs text-fd-muted-foreground"
+                          title="Already corrected — correct its successor instead"
+                        >
+                          —
+                        </span>
+                      ) : (
+                        <Link
+                          href={`/records/${r.id}/correct`}
+                          className="text-xs text-fd-primary underline underline-offset-2"
+                        >
+                          Correct
+                        </Link>
+                      )}
+                    </td>
                   </tr>
                 );
               })}

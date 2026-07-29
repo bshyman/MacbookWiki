@@ -1,4 +1,10 @@
-import { Pool } from 'pg';
+import { Pool, types } from 'pg';
+
+// node-postgres returns int8 as a string to avoid precision loss, which silently
+// breaks every `id === someNumber` comparison. Nothing here goes near
+// Number.MAX_SAFE_INTEGER — the largest value stored is a disk size in bytes
+// (8 TB ≈ 8e12, versus a 9e15 ceiling) — so parse them as numbers.
+types.setTypeParser(types.builtins.INT8, (v) => Number(v));
 
 // Lazy — never touch DATABASE_URL at module scope. Next evaluates top-level module
 // code during the build, so eager init crashes `next build` before env vars exist.
