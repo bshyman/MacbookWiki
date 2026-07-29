@@ -9,6 +9,8 @@ export function baseOptions(): BaseLayoutProps {
     links: [
       { text: 'Models', url: '/', active: 'none' },
       { text: 'Workflow', url: '/docs', active: 'nested-url' },
+      { text: 'Intake', url: '/intake', active: 'nested-url' },
+      { text: 'Records', url: '/records', active: 'nested-url' },
     ],
     githubUrl: `https://github.com/${gitConfig.user}/${gitConfig.repo}`,
   };
