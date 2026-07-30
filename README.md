@@ -39,11 +39,29 @@ Physical Issues  Functional Issues  Firmware Locked  OS Reset  Processed At  Ing
 
 ```bash
 npm install
+cp .env.example .env.local   # DATABASE_URL, AUTH_SECRET, APP_PASSWORD
 npm run dev          # http://localhost:3000
 npm run build
 npm run types:check  # codegen + tsc --noEmit
 ```
 
+Database setup is in [`db/README.md`](db/README.md).
+
+## Access
+
+`/intake` and `/records` sit behind a shared team password (`APP_PASSWORD`); the docs stay
+public. Sign-in also takes the operator's name, which goes into the signed session cookie —
+the server stamps `ingested_by` from there, so it can't be set per record by the client.
+
+The honest limit: one shared password means anyone holding it can sign in under any name.
+Attribution is per-session, not verified. Moving to SSO would close that; until then, use a
+long random `APP_PASSWORD` — there's no rate limiting in front of it.
+
+Rotating `AUTH_SECRET` invalidates every session, which is the panic button if the password
+leaks.
+
 ## Deploy
 
 Vercel. Search runs through `/api/search` (Orama, self-hosted — no external service).
+Set `AUTH_SECRET` and `APP_PASSWORD` in the project's environment variables — the app
+fails closed and every request errors if `AUTH_SECRET` is missing or under 32 characters.

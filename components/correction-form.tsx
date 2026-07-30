@@ -3,7 +3,7 @@
 import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { STEPS, missingRequired } from '@/lib/intake-steps';
+import { STEPS, labelFor, missingRequired } from '@/lib/intake-steps';
 import type { DraftPayload } from '@/lib/intake-schema';
 import { correctRecord } from '@/app/(home)/intake/actions';
 
@@ -16,9 +16,7 @@ const ALL_FIELDS = STEPS_WITH_FIELDS.flatMap((s) => s.fields);
 
 function display(key: keyof DraftPayload, value: unknown): string {
   if (value === null || value === undefined || String(value).trim() === '') return '—';
-  const field = ALL_FIELDS.find((f) => f.key === key);
-  const option = field?.options?.find((o) => o.value === String(value));
-  return option ? option.label : String(value);
+  return labelFor(key, value) ?? String(value);
 }
 
 export function CorrectionForm({

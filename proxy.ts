@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isMarkdownPreferred, rewritePath } from 'fumadocs-core/negotiation';
 import { docsContentRoute, docsRoute } from '@/lib/shared';
+import { SESSION_COOKIE, verifySessionToken } from '@/lib/auth';
+
+// Everything that reads or writes the ledger. The docs wiki stays public — it's
+// reference material with no machine data in it.
+const GATED = ['/intake', '/records'];
 
 const { rewrite: rewriteDocs } = rewritePath(
   `${docsRoute}{/*path}`,
@@ -11,7 +16,18 @@ const { rewrite: rewriteSuffix } = rewritePath(
   `${docsContentRoute}{/*path}/content.md`,
 );
 
-export default function proxy(request: NextRequest) {
+export default async function proxy(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  if (GATED.some((p) => pathname === p || pathname.startsWith(`${p}/`))) {
+    const session = await verifySessionToken(request.cookies.get(SESSION_COOKIE)?.value);
+    if (!session) {
+      const url = new URL('/signin', request.nextUrl);
+      url.searchParams.set('next', pathname + request.nextUrl.search);
+      return NextResponse.redirect(url);
+    }
+  }
+
   const result = rewriteSuffix(request.nextUrl.pathname);
   if (result) {
     return NextResponse.rewrite(new URL(result, request.nextUrl));

@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { STEPS, missingRequired, type Field } from '@/lib/intake-steps';
-import type { DraftPayload } from '@/lib/intake-schema';
+import { STEPS, labelFor, missingRequired, type Field } from '@/lib/intake-steps';
+import { BLOCKER_LABELS, deriveBlockers, type DraftPayload } from '@/lib/intake-schema';
 import { MODELS, identifiersOf } from '@/lib/models';
 import { commitDraft, syncDraft } from '@/app/(home)/intake/actions';
 
@@ -21,10 +21,13 @@ export function IntakeWizard({
   draftId,
   initialStep,
   initialPayload,
+  operator,
 }: {
   draftId: string;
   initialStep: number;
   initialPayload: DraftPayload;
+  /** From the session. Display only — the server stamps the record from its own copy. */
+  operator: string;
 }) {
   const router = useRouter();
   const [payload, setPayload] = useState<DraftPayload>(initialPayload);
@@ -33,17 +36,30 @@ export function IntakeWizard({
   const [commitError, setCommitError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const hydrated = useRef(false);
+  // Nothing to sync until something actually changes — otherwise every page load
+  // and every step change costs a redundant write.
+  const dirty = useRef(false);
 
   // Local first: a browser crash mid-intake shouldn't cost the operator the unit.
   // The DB copy is written on step change, so this covers everything typed since.
   useEffect(() => {
     try {
       const cached = localStorage.getItem(localKey(draftId));
-      if (cached) setPayload((p) => ({ ...p, ...JSON.parse(cached) }));
+      if (cached) {
+        const parsed = JSON.parse(cached) as DraftPayload;
+        setPayload((p) => ({ ...p, ...parsed }));
+        // Local holding edits the DB never got is exactly the crash case — let
+        // those sync up rather than waiting for the next keystroke.
+        if (JSON.stringify({ ...initialPayload, ...parsed }) !== JSON.stringify(initialPayload)) {
+          dirty.current = true;
+        }
+      }
     } catch {
       /* private mode */
     }
     hydrated.current = true;
+    // initialPayload is the server snapshot for this draft — stable for the mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [draftId]);
 
   useEffect(() => {
@@ -59,6 +75,7 @@ export function IntakeWizard({
   const missing = useMemo(() => missingRequired(payload), [payload]);
 
   const set = useCallback((key: keyof DraftPayload, value: string) => {
+    dirty.current = true;
     setPayload((prev) => {
       const next = { ...prev, [key]: value } as DraftPayload;
       // Deriving from the Identifier is the whole point of having the dataset —
@@ -86,9 +103,18 @@ export function IntakeWizard({
       new Promise<void>((resolve) => {
         setSaveState('saving');
         startTransition(async () => {
-          const res = await syncDraft(draftId, nextStep + 1, payload);
-          setSaveState(res.ok ? 'saved' : 'error');
-          resolve();
+          try {
+            const res = await syncDraft(draftId, nextStep + 1, payload);
+            setSaveState(res.ok ? 'saved' : 'error');
+            if (res.ok) dirty.current = false;
+          } catch {
+            // Transport failure. The local copy still holds everything.
+            setSaveState('error');
+          } finally {
+            // Always — goto() awaits this, and a rejection used to leave the
+            // wizard stuck on the current step with the buttons disabled.
+            resolve();
+          }
         });
       }),
     [draftId, payload],
@@ -98,11 +124,14 @@ export function IntakeWizard({
   // without this, anything typed on the review screen only ever lives in
   // localStorage. Debounced so it doesn't fire per keystroke.
   useEffect(() => {
-    if (!hydrated.current) return;
+    if (!hydrated.current || !dirty.current) return;
     const t = setTimeout(() => {
-      void syncDraft(draftId, stepIndex + 1, payload).then((res) =>
-        setSaveState(res.ok ? 'saved' : 'error'),
-      );
+      void syncDraft(draftId, stepIndex + 1, payload)
+        .then((res) => {
+          setSaveState(res.ok ? 'saved' : 'error');
+          if (res.ok) dirty.current = false;
+        })
+        .catch(() => setSaveState('error'));
     }, 2000);
     return () => clearTimeout(t);
   }, [payload, stepIndex, draftId]);
@@ -190,7 +219,7 @@ export function IntakeWizard({
           </p>
         )}
 
-        {isLast && <Review payload={payload} missing={missing} />}
+        {isLast && <Review payload={payload} missing={missing} operator={operator} />}
 
         {commitError && (
           <p className="mt-4 rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-600 dark:text-red-400">
@@ -410,6 +439,7 @@ const REVIEW_ROWS: { key: keyof DraftPayload; label: string }[] = [
   { key: 'identifier', label: 'Identifier' },
   { key: 'model', label: 'Model' },
   { key: 'batteryHealth', label: 'Battery' },
+  { key: 'batteryCycles', label: 'Cycle Count' },
   { key: 'year', label: 'Year' },
   { key: 'ramBytes', label: 'RAM' },
   { key: 'hdBytes', label: 'HD' },
@@ -418,11 +448,17 @@ const REVIEW_ROWS: { key: keyof DraftPayload; label: string }[] = [
   { key: 'functionalIssues', label: 'Functional Issues' },
   { key: 'firmwareLocked', label: 'Firmware Locked' },
   { key: 'osReset', label: 'OS Reset' },
-  { key: 'ingestedBy', label: 'Ingested By' },
+  // Both required. Leaving them off meant "2 required fields still blank" with
+  // nothing on screen to show which two.
+  { key: 'activationLock', label: 'Activation Lock' },
+  { key: 'mdmEnrolled', label: 'MDM / DEP' },
 ];
 
 function human(key: keyof DraftPayload, value: unknown): string {
   if (value === null || value === undefined || String(value).trim() === '') return '—';
+  // Selects carry their own wording — show 'N/A — Apple Silicon', not 'n/a'.
+  const label = labelFor(key, value);
+  if (label) return label;
   if (key === 'ramBytes') return `${Math.round(Number(value) / 1024 ** 3)} GB`;
   if (key === 'hdBytes') {
     const n = Number(value);
@@ -433,12 +469,18 @@ function human(key: keyof DraftPayload, value: unknown): string {
   return String(value);
 }
 
-function Review({ payload, missing }: { payload: DraftPayload; missing: (keyof DraftPayload)[] }) {
-  const blockers = [
-    payload.activationLock === 'enabled' && 'Activation Lock enabled',
-    payload.mdmEnrolled === 'yes' && 'Enrolled via DEP/MDM',
-    payload.firmwareLocked === 'yes' && 'Firmware password not cleared',
-  ].filter(Boolean) as string[];
+function Review({
+  payload,
+  missing,
+  operator,
+}: {
+  payload: DraftPayload;
+  missing: (keyof DraftPayload)[];
+  operator: string;
+}) {
+  // The same function that stamps the record. A second copy here used to omit
+  // smart-failing, so the preview could say "clear" on a row committed with a blocker.
+  const blockers = deriveBlockers(payload);
 
   return (
     <div className="mt-6">
@@ -447,7 +489,7 @@ function Review({ payload, missing }: { payload: DraftPayload; missing: (keyof D
           <strong>Blockers — this unit is not sellable as-is:</strong>
           <ul className="mt-1 list-inside list-disc text-fd-muted-foreground">
             {blockers.map((b) => (
-              <li key={b}>{b}</li>
+              <li key={b}>{BLOCKER_LABELS[b] ?? b}</li>
             ))}
           </ul>
           <p className="mt-1 text-xs text-fd-muted-foreground">
@@ -473,6 +515,15 @@ function Review({ payload, missing }: { payload: DraftPayload; missing: (keyof D
                 </tr>
               );
             })}
+            <tr>
+              <th scope="row" className="w-44 bg-fd-card px-3 py-2 text-left font-medium">
+                Ingested By
+              </th>
+              <td className="px-3 py-2">
+                {operator}
+                <span className="ml-2 text-xs text-fd-muted-foreground">from your sign-in</span>
+              </td>
+            </tr>
           </tbody>
         </table>
       </div>

@@ -6,39 +6,74 @@ import {
   commitIntake,
   createDraft,
   deleteDraft,
+  isDraftId,
   saveDraft,
   supersedeRecord,
 } from '@/lib/intake';
 import { draftPayloadSchema, type DraftPayload } from '@/lib/intake-schema';
+import { MAX_STEP } from '@/lib/intake-steps';
+import { getSession, requireSession } from '@/lib/session';
 
-export async function startIntake(operator: string) {
-  const draft = await createDraft(operator.trim() || 'unknown');
+/** Client-supplied payloads are `unknown`; spreading a non-object would corrupt them. */
+function asObject(payload: unknown): Record<string, unknown> {
+  return payload && typeof payload === 'object' && !Array.isArray(payload)
+    ? (payload as Record<string, unknown>)
+    : {};
+}
+
+export async function startIntake() {
+  const { operator } = await requireSession();
+  const draft = await createDraft(operator);
   if (!draft) throw new Error('Could not create draft');
   redirect(`/intake/${draft.id}`);
 }
 
 export type SyncResult = { ok: true; updatedAt: string } | { ok: false; error: string };
 
-/** Called when the wizard advances a step, or on explicit save. */
+/**
+ * Called when the wizard advances a step, or on explicit save. Returns an error
+ * rather than redirecting on an expired session — this fires in the background
+ * while someone is typing, and yanking them to /signin mid-field would lose the
+ * unsynced fields. The local copy survives, and the badge says so.
+ */
 export async function syncDraft(
   id: string,
   step: number,
   payload: DraftPayload,
 ): Promise<SyncResult> {
+  if (!(await getSession())) {
+    return { ok: false, error: 'Session expired — sign in again to resume syncing' };
+  }
+
+  if (!isDraftId(id)) return { ok: false, error: 'Not a valid draft id' };
+
   const parsed = draftPayloadSchema.safeParse(payload);
   if (!parsed.success) return { ok: false, error: 'Draft payload failed validation' };
 
-  const row = await saveDraft(id, step, parsed.data);
-  if (!row) return { ok: false, error: 'Draft no longer exists — it may have been committed' };
+  // Never send a step the CHECK constraint would reject — a throw here used to
+  // strand the wizard rather than surface an error.
+  const safeStep = Math.min(Math.max(Math.trunc(step), 1), MAX_STEP);
 
-  return { ok: true, updatedAt: row.updated_at.toISOString() };
+  try {
+    const row = await saveDraft(id, safeStep, parsed.data);
+    if (!row) return { ok: false, error: 'Draft no longer exists — it may have been committed' };
+    return { ok: true, updatedAt: row.updated_at.toISOString() };
+  } catch (err) {
+    return { ok: false, error: messageFor(err) };
+  }
 }
 
 export type CommitResult = { ok: true; id: number } | { ok: false; error: string };
 
 export async function commitDraft(draftId: string, payload: unknown): Promise<CommitResult> {
+  // Attribution comes from the session, never from the client. The operator can't
+  // put someone else's name on a row they can't afterwards delete.
+  const { operator } = await requireSession();
   try {
-    const record = await commitIntake(payload as never, draftId);
+    const record = await commitIntake(
+      { ...asObject(payload), ingestedBy: operator } as never,
+      draftId,
+    );
     revalidatePath('/records');
     revalidatePath('/intake');
     return { ok: true, id: record.id };
@@ -48,8 +83,10 @@ export async function commitDraft(draftId: string, payload: unknown): Promise<Co
 }
 
 export async function correctRecord(payload: unknown): Promise<CommitResult> {
+  // A correction is attributed to whoever filed it, not to the original operator.
+  const { operator } = await requireSession();
   try {
-    const record = await supersedeRecord(payload);
+    const record = await supersedeRecord({ ...asObject(payload), ingestedBy: operator });
     revalidatePath('/records');
     return { ok: true, id: record.id };
   } catch (err) {
@@ -58,6 +95,8 @@ export async function correctRecord(payload: unknown): Promise<CommitResult> {
 }
 
 export async function discardDraft(id: string) {
+  await requireSession();
+  if (!isDraftId(id)) redirect('/intake');
   await deleteDraft(id);
   revalidatePath('/intake');
   redirect('/intake');

@@ -1,7 +1,8 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import type { Metadata } from 'next';
-import { loadDraft } from '@/lib/intake';
+import { isDraftId, loadDraft } from '@/lib/intake';
+import { requireSession } from '@/lib/session';
 import { draftPayloadSchema } from '@/lib/intake-schema';
 import { ALL_IDENTIFIERS } from '@/lib/models';
 import { IntakeWizard } from '@/components/intake-wizard';
@@ -13,6 +14,9 @@ export const metadata: Metadata = { title: 'Intake' };
 
 export default async function DraftPage(props: PageProps<'/intake/[draftId]'>) {
   const { draftId } = await props.params;
+  const { operator } = await requireSession();
+  if (!isDraftId(draftId)) notFound();
+
   const draft = await loadDraft(draftId);
   if (!draft) notFound();
 
@@ -49,7 +53,12 @@ export default async function DraftPage(props: PageProps<'/intake/[draftId]'>) {
         ))}
       </datalist>
 
-      <IntakeWizard draftId={draft.id} initialStep={draft.step} initialPayload={payload} />
+      <IntakeWizard
+        draftId={draft.id}
+        initialStep={draft.step}
+        initialPayload={payload}
+        operator={operator}
+      />
     </main>
   );
 }

@@ -1,7 +1,8 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import type { Metadata } from 'next';
-import { getRecord, listAllRecords } from '@/lib/intake';
+import { getRecord, successorOf } from '@/lib/intake';
+import { requireSession } from '@/lib/session';
 import type { DraftPayload } from '@/lib/intake-schema';
 import { CorrectionForm } from '@/components/correction-form';
 
@@ -36,6 +37,7 @@ function toPayload(r: Awaited<ReturnType<typeof getRecord>>): DraftPayload {
 
 export default async function CorrectPage(props: PageProps<'/records/[id]/correct'>) {
   const { id } = await props.params;
+  await requireSession();
   const recordId = Number(id);
   if (!Number.isInteger(recordId) || recordId < 1) notFound();
 
@@ -44,8 +46,7 @@ export default async function CorrectPage(props: PageProps<'/records/[id]/correc
 
   // The unique partial index on supersedes_id would reject a second correction —
   // catch it here so the operator gets a route, not a constraint error.
-  const all = await listAllRecords();
-  const successor = all.find((r) => r.supersedes_id === recordId);
+  const successor = await successorOf(recordId);
 
   return (
     <main className="mx-auto w-full max-w-3xl px-6 py-8">

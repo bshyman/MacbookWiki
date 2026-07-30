@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { listAllRecords } from '@/lib/intake';
+import { requireSession } from '@/lib/session';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,6 +24,7 @@ function gb(bytes: number | null, base: 1024 | 1000) {
 
 export default async function RecordsPage(props: PageProps<'/records'>) {
   const { committed } = await props.searchParams;
+  await requireSession();
   const records = await listAllRecords();
   const supersededIds = new Set(records.map((r) => r.supersedes_id).filter(Boolean));
 

@@ -228,18 +228,19 @@ export const STEPS: WizardStep[] = [
     title: 'Finish the Sheet',
     summary: 'Review every column, then commit. Committed records cannot be edited.',
     doc: '/docs/steps/finish',
-    fields: [
-      {
-        key: 'ingestedBy',
-        label: 'Ingested by',
-        kind: 'text',
-        column: 'Ingested By',
-        placeholder: 'Your name',
-        hint: 'Written into the permanent record.',
-      },
-    ],
+    // Ingested By used to live here as a text box. It's stamped from the signed-in
+    // operator now — a name typed per record is a name anyone can put on a row
+    // they can't delete afterwards.
+    fields: [],
   },
 ];
+
+/**
+ * Upper bound on the persisted step number. Must stay <= the CHECK on
+ * intake_drafts.step in db/001_intake.sql — adding steps past this needs a
+ * migration first, or every draft save fails the constraint.
+ */
+export const MAX_STEP = 10;
 
 export const REQUIRED_KEYS: (keyof DraftPayload)[] = [
   'serial',
@@ -248,7 +249,6 @@ export const REQUIRED_KEYS: (keyof DraftPayload)[] = [
   'osReset',
   'activationLock',
   'mdmEnrolled',
-  'ingestedBy',
 ];
 
 export function missingRequired(payload: DraftPayload): (keyof DraftPayload)[] {
@@ -256,4 +256,16 @@ export function missingRequired(payload: DraftPayload): (keyof DraftPayload)[] {
     const v = payload[k];
     return v === null || v === undefined || String(v).trim() === '';
   });
+}
+
+const FIELD_BY_KEY = new Map(STEPS.flatMap((s) => s.fields.map((f) => [f.key, f] as const)));
+
+/**
+ * The option label behind a stored value — 'n/a' reads as 'N/A — Apple Silicon'.
+ * Null when the field has no options or the value isn't one of them, so callers
+ * can fall back to their own formatting.
+ */
+export function labelFor(key: keyof DraftPayload, value: unknown): string | null {
+  const options = FIELD_BY_KEY.get(key)?.options;
+  return options?.find((o) => o.value === String(value))?.label ?? null;
 }
