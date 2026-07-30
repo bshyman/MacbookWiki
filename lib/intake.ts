@@ -1,5 +1,5 @@
 import 'server-only';
-import { query, queryOne } from './db';
+import { getPool, query, queryOne } from './db';
 import {
   commitSchema,
   correctionSchema,
@@ -45,6 +45,16 @@ export interface IntakeDraft {
 }
 
 // ------------------------------------------------------------------ drafts ---
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Draft ids are uuids. Postgres raises 22P02 on anything else, which surfaces as
+ * a 500 — so callers check first and 404 instead.
+ */
+export function isDraftId(value: string): boolean {
+  return UUID_RE.test(value);
+}
 
 export function createDraft(startedBy: string) {
   return queryOne<IntakeDraft>(
@@ -109,8 +119,7 @@ export async function commitIntake(input: CommitInput, draftId?: string) {
   const values = commitSchema.parse(input);
   const blockers = deriveBlockers(values);
 
-  const pool = (await import('./db')).getPool();
-  const client = await pool.connect();
+  const client = await getPool().connect();
   try {
     await client.query('BEGIN');
     const { rows } = await client.query(
@@ -166,6 +175,14 @@ export function listAllRecords(limit = 200) {
 
 export function getRecord(id: number) {
   return queryOne<IntakeRecord>(`SELECT * FROM intake_records WHERE id = $1`, [id]);
+}
+
+/**
+ * The correction that replaced this record, if any. Hits idx_intake_records_supersedes —
+ * scanning a capped listAllRecords() misses successors once the ledger outgrows the limit.
+ */
+export function successorOf(id: number) {
+  return queryOne<IntakeRecord>(`SELECT * FROM intake_records WHERE supersedes_id = $1`, [id]);
 }
 
 /** Has this machine been through intake before? */

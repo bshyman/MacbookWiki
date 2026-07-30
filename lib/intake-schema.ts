@@ -9,17 +9,32 @@ export const OS_RESET = ['yes', 'no'] as const;
 export const ACTIVATION_LOCK = ['enabled', 'disabled', 'unsupported', 'unknown'] as const;
 export const MDM_ENROLLED = ['yes', 'no', 'unknown'] as const;
 
-/** Blank strings from empty form inputs should read as "not provided". */
+/**
+ * Blank strings from empty form inputs should read as "not provided". Accepts
+ * undefined too — a key the operator never touched is absent, not invalid.
+ */
+// .nullish() rather than a z.undefined() union member — Zod treats object fields
+// as non-optional unless the field schema itself is, so a union containing
+// undefined still rejects a missing key.
 const optionalText = z
   .string()
-  .trim()
-  .transform((v) => (v === '' ? null : v))
-  .nullable();
+  .nullish()
+  .transform((v) => {
+    const t = typeof v === 'string' ? v.trim() : '';
+    return t === '' ? null : t;
+  });
 
 const optionalInt = (min: number, max: number) =>
   z
-    .union([z.string(), z.number(), z.null()])
-    .transform((v) => (v === '' || v === null || v === undefined ? null : Number(v)))
+    .union([z.string(), z.number()])
+    .nullish()
+    .transform((v) => {
+      if (v === null || v === undefined) return null;
+      // Trim before the blank check — Number('  ') is 0, which would sail through
+      // as a real reading.
+      const t = typeof v === 'string' ? v.trim() : v;
+      return t === '' ? null : Number(t);
+    })
     .refine((v) => v === null || (Number.isFinite(v) && v >= min && v <= max), {
       message: `must be between ${min} and ${max}`,
     });
@@ -77,6 +92,14 @@ export const correctionSchema = commitSchema.extend({
   supersedesId: z.number().int().positive(),
   correctionNote: z.string().trim().min(1, 'A correction needs a reason'),
 });
+
+/** Prose for the commit-time preview. Keyed by what deriveBlockers emits. */
+export const BLOCKER_LABELS: Record<string, string> = {
+  'activation-lock': 'Activation Lock enabled',
+  'mdm-enrolled': 'Enrolled via DEP/MDM',
+  'firmware-locked': 'Firmware password not cleared',
+  'smart-failing': 'Functional issues mention a failing drive',
+};
 
 /**
  * Anything here stops resale. Derived at commit time rather than typed, so the

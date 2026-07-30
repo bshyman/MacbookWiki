@@ -10,6 +10,20 @@ types.setTypeParser(types.builtins.INT8, (v) => Number(v));
 // code during the build, so eager init crashes `next build` before env vars exist.
 let pool: Pool | null = null;
 
+/**
+ * Only the host decides whether TLS verification comes off. Substring-matching the
+ * whole URL would disable it for a password that happens to contain "localhost".
+ * Unparseable strings are treated as remote — fail toward verifying.
+ */
+function isLocalHost(connectionString: string): boolean {
+  try {
+    const host = new URL(connectionString).hostname;
+    return host === 'localhost' || host === '127.0.0.1' || host === '::1' || host === '[::1]';
+  } catch {
+    return false;
+  }
+}
+
 export function getPool(): Pool {
   if (pool) return pool;
 
@@ -27,7 +41,7 @@ export function getPool(): Pool {
     max: 5,
     idleTimeoutMillis: 10_000,
     connectionTimeoutMillis: 10_000,
-    ssl: connectionString.includes('localhost') ? undefined : { rejectUnauthorized: true },
+    ssl: isLocalHost(connectionString) ? undefined : { rejectUnauthorized: true },
   });
 
   return pool;
