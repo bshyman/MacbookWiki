@@ -2,12 +2,40 @@
 -- Run: psql -d macbook_intake_dev -f db/verify.sql
 --
 -- Every "DENIED" line below is a pass. A row that changes is a failure.
+--
+-- ############################################################################
+-- #  DEVELOPMENT DATABASES ONLY.                                             #
+-- #                                                                          #
+-- #  This inserts real rows, and the table is append-only by design — there  #
+-- #  is no way to remove them afterwards without disabling the truncate      #
+-- #  guard as the owner. Run it against production and the ledger carries a  #
+-- #  fake VERIFYONLY01 machine forever.                                      #
+-- #                                                                          #
+-- #  SET SESSION AUTHORIZATION also needs superuser, so this won't run on    #
+-- #  Neon as neondb_owner. See db/README.md.                                 #
+-- ############################################################################
 
-\set ON_ERROR_STOP off
 \pset pager off
+
+-- Guard runs with ON_ERROR_STOP on so it actually halts. The denial tests below
+-- need it off, since every expected failure would otherwise abort the script.
+\set ON_ERROR_STOP on
+DO $$
+BEGIN
+  IF current_database() NOT LIKE '%\_dev' AND current_database() NOT LIKE '%test%' THEN
+    RAISE EXCEPTION
+      'Refusing to run verify.sql against "%". It writes permanent, undeletable rows — dev databases only.',
+      current_database();
+  END IF;
+END;
+$$;
+\set ON_ERROR_STOP off
 
 SET SESSION AUTHORIZATION macbook_app;
 SELECT current_user AS connected_as;
+
+-- Serial is deliberately not a real Apple format, so a stray row is obvious.
+\set serial '''VERIFYONLY01'''
 
 -- --- INSERT should work -------------------------------------------------
 INSERT INTO intake_records
@@ -15,18 +43,25 @@ INSERT INTO intake_records
    battery_health, battery_cycles, physical_issues, functional_issues,
    firmware_locked, os_reset, activation_lock, mdm_enrolled, ingested_by)
 VALUES
-  ('RW2D0HDQRJ', 'Mac15,6', 'MacBook Pro', 'A2992', 2023, 'Apple M3 Pro',
+  (:serial, 'Mac15,6', 'MacBook Pro', 'A2992', 2023, 'Apple M3 Pro',
    19327352832, 536870912000, 94, 247, 'light scuffs on lid', 'none',
-   'n/a', 'yes', 'disabled', 'no', 'bshyman')
+   'n/a', 'yes', 'disabled', 'no', 'verify.sql')
 RETURNING id, serial, battery_health AS health, ingested_by;
+
+-- Everything below targets this row by id, so the script is repeatable and
+-- doesn't care what else is already in the ledger.
+SELECT id AS original_id
+FROM intake_records
+WHERE serial = :serial AND supersedes_id IS NULL
+ORDER BY id DESC LIMIT 1 \gset
 
 \echo ''
 \echo '--- UPDATE as macbook_app (expect: DENIED) ---'
-UPDATE intake_records SET battery_health = 100 WHERE serial = 'RW2D0HDQRJ';
+UPDATE intake_records SET battery_health = 100 WHERE id = :original_id;
 
 \echo ''
 \echo '--- DELETE as macbook_app (expect: DENIED) ---'
-DELETE FROM intake_records WHERE serial = 'RW2D0HDQRJ';
+DELETE FROM intake_records WHERE id = :original_id;
 
 \echo ''
 \echo '--- TRUNCATE as macbook_app (expect: DENIED) ---'
@@ -42,7 +77,7 @@ ALTER TABLE intake_records DROP CONSTRAINT correction_needs_note;
 
 \echo ''
 \echo '--- value unchanged after all attempts (expect: 94) ---'
-SELECT serial, battery_health FROM intake_records WHERE serial = 'RW2D0HDQRJ';
+SELECT id, battery_health FROM intake_records WHERE id = :original_id;
 
 \echo ''
 \echo '--- correction path: supersede with a new row (expect: SUCCESS) ---'
@@ -53,39 +88,46 @@ INSERT INTO intake_records
    supersedes_id, correction_note)
 SELECT serial, identifier, name, model, year, cpu, ram_bytes, hd_bytes,
        88, battery_cycles, physical_issues, functional_issues,
-       firmware_locked, os_reset, activation_lock, mdm_enrolled, 'bshyman',
+       firmware_locked, os_reset, activation_lock, mdm_enrolled, 'verify.sql',
        id, 'battery re-measured after full charge cycle'
-FROM intake_records WHERE serial = 'RW2D0HDQRJ' AND supersedes_id IS NULL
+FROM intake_records WHERE id = :original_id
 RETURNING id, battery_health AS health, supersedes_id, correction_note;
 
 \echo ''
 \echo '--- correction without a note (expect: DENIED by check constraint) ---'
 INSERT INTO intake_records
   (serial, identifier, firmware_locked, os_reset, activation_lock, mdm_enrolled, ingested_by, supersedes_id)
-VALUES ('RW2D0HDQRJ', 'Mac15,6', 'n/a', 'yes', 'disabled', 'no', 'bshyman', 1);
+VALUES (:serial, 'Mac15,6', 'n/a', 'yes', 'disabled', 'no', 'verify.sql', :original_id);
 
 \echo ''
 \echo '--- second correction off the same row (expect: DENIED, chain stays linear) ---'
 INSERT INTO intake_records
   (serial, identifier, firmware_locked, os_reset, activation_lock, mdm_enrolled, ingested_by,
    supersedes_id, correction_note)
-VALUES ('RW2D0HDQRJ', 'Mac15,6', 'n/a', 'yes', 'disabled', 'no', 'bshyman', 1, 'branching attempt');
+VALUES (:serial, 'Mac15,6', 'n/a', 'yes', 'disabled', 'no', 'verify.sql',
+        :original_id, 'branching attempt');
 
 \echo ''
-\echo '--- ledger keeps both rows (expect: 2) ---'
-SELECT count(*) AS rows_in_ledger FROM intake_records;
+\echo '--- ledger keeps both rows (expect: 2 for this run) ---'
+SELECT count(*) AS rows_for_this_serial FROM intake_records WHERE serial = :serial;
 
 \echo ''
-\echo '--- intake_current shows only the correction (expect: 1 row, health 88) ---'
-SELECT id, serial, battery_health AS health, correction_note FROM intake_current;
+\echo '--- the original is superseded, the correction is current (expect: 1 row, health 88) ---'
+SELECT id, serial, battery_health AS health, correction_note
+FROM intake_current WHERE serial = :serial;
 
 \echo ''
 \echo '--- drafts remain fully mutable (expect: SUCCESS) ---'
 INSERT INTO intake_drafts (started_by, identifier, payload)
-VALUES ('bshyman', 'Mac15,6', '{"step":1}') RETURNING id, step, identifier;
-UPDATE intake_drafts SET step = 4 WHERE started_by = 'bshyman';
-SELECT step, (updated_at > created_at) AS touch_trigger_fired FROM intake_drafts;
-DELETE FROM intake_drafts WHERE started_by = 'bshyman';
-SELECT count(*) AS drafts_after_delete FROM intake_drafts;
+VALUES ('verify.sql', 'Mac15,6', '{"step":1}') RETURNING id, step, identifier;
+UPDATE intake_drafts SET step = 4 WHERE started_by = 'verify.sql';
+SELECT step, (updated_at > created_at) AS touch_trigger_fired
+FROM intake_drafts WHERE started_by = 'verify.sql';
+DELETE FROM intake_drafts WHERE started_by = 'verify.sql';
+SELECT count(*) AS drafts_left_behind FROM intake_drafts WHERE started_by = 'verify.sql';
 
 RESET SESSION AUTHORIZATION;
+
+\echo ''
+\echo '--- NOTE: this run left 2 permanent rows for serial VERIFYONLY01. ---'
+\echo '--- See "Resetting local data" in db/README.md to clear them.      ---'

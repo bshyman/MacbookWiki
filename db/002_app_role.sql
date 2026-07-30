@@ -5,13 +5,21 @@
 -- so the application physically cannot mutate a committed row. It also doesn't
 -- own the table, so it can't drop the triggers or alter the constraints.
 --
--- Run as the owner. Set the password via psql variable:
---   psql -v app_password="'...'" -f db/002_app_role.sql
+-- Run as the owner:
+--   psql -d <db> -v db_name=<db> -f db/002_app_role.sql
+--
+-- It prompts for the password. Don't pass one with -v — that puts a production
+-- credential in your shell history and in the process table for anyone running ps.
 --
 -- On Neon, run this as neondb_owner. Neon reserves the neon_superuser role for
 -- administration — the app must not connect as it.
 
 \set ON_ERROR_STOP on
+
+\if :{?app_password}
+\else
+\prompt 'Password for macbook_app: ' app_password
+\endif
 
 DO $$
 BEGIN

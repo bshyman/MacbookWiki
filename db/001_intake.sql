@@ -106,6 +106,9 @@ WHERE NOT EXISTS (
 -- Work in progress. Freely mutable, deleted once committed to the ledger.
 CREATE TABLE IF NOT EXISTS intake_drafts (
   id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  -- Upper bound must match MAX_STEP in lib/intake-steps.ts. Adding a wizard step
+  -- past 10 needs a migration widening this first — the app clamps to MAX_STEP,
+  -- so a mismatch silently parks drafts on the wrong step instead of erroring.
   step        smallint NOT NULL DEFAULT 1 CHECK (step BETWEEN 1 AND 10),
   payload     jsonb    NOT NULL DEFAULT '{}'::jsonb,
   -- denormalized out of payload so the drafts list doesn't parse JSON

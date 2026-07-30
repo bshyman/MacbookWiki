@@ -15,12 +15,17 @@ Append-only intake ledger. Postgres — local for development, Neon in productio
 ```bash
 createdb macbook_intake_dev
 psql -d macbook_intake_dev -v ON_ERROR_STOP=1 -f db/001_intake.sql
-psql -d macbook_intake_dev -v ON_ERROR_STOP=1 \
-     -v app_password="'devpassword'" -v db_name=macbook_intake_dev \
-     -f db/002_app_role.sql
-cp .env.example .env.local
+psql -d macbook_intake_dev -v db_name=macbook_intake_dev -f db/002_app_role.sql
+cp .env.example .env.local                    # DATABASE_URL, AUTH_SECRET, APP_PASSWORD
 psql -d macbook_intake_dev -f db/verify.sql   # every "DENIED" line is a pass
 ```
+
+`002_app_role.sql` prompts for the role password. Don't pass one with `-v app_password=…`
+— that writes a production credential into your shell history and exposes it to `ps`.
+
+`verify.sql` writes rows that can't be deleted afterwards, so it refuses to run against a
+database whose name doesn't end in `_dev` or contain `test`. It leaves two permanent
+`VERIFYONLY01` rows behind; clear them with the reset below.
 
 ## Neon
 
@@ -28,6 +33,16 @@ Provision through the Vercel Marketplace (`vercel integration add neon`), then r
 migrations as `neondb_owner`. Point `DATABASE_URL` at the **pooled** endpoint using the
 `macbook_app` role — never `neondb_owner` or `neon_superuser`, or the immutability
 guarantee evaporates.
+
+`verify.sql` won't run here: it needs `SET SESSION AUTHORIZATION`, which requires
+superuser, and `neondb_owner` isn't one. To confirm the grants took on Neon, check them
+directly instead:
+
+```sql
+SELECT grantee, privilege_type FROM information_schema.table_privileges
+WHERE table_name = 'intake_records' AND grantee = 'macbook_app';
+-- expect exactly SELECT and INSERT
+```
 
 ## Why records can't be edited
 
