@@ -1,9 +1,10 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
-import { listDrafts } from '@/lib/intake';
+import { listDraftIds, listDrafts } from '@/lib/intake';
 import { STEPS } from '@/lib/intake-steps';
 import { requireSession } from '@/lib/session';
 import { signOut } from '@/app/signin/actions';
+import { LocalDraftPruner } from '@/components/local-draft-pruner';
 import { startIntake } from './actions';
 
 export const dynamic = 'force-dynamic';
@@ -12,10 +13,11 @@ export const metadata: Metadata = { title: 'Intake drafts' };
 
 export default async function IntakeListPage() {
   const { operator } = await requireSession();
-  const drafts = await listDrafts();
+  const [drafts, liveIds] = await Promise.all([listDrafts(), listDraftIds()]);
 
   return (
     <main className="mx-auto w-full max-w-4xl px-6 py-8">
+      <LocalDraftPruner liveIds={liveIds} />
       <div className="flex flex-wrap items-baseline justify-between gap-3">
         <h1 className="text-2xl font-bold tracking-tight">Intake</h1>
         <form action={signOut} className="text-sm">

@@ -69,6 +69,8 @@ export async function commitDraft(draftId: string, payload: unknown): Promise<Co
   // Attribution comes from the session, never from the client. The operator can't
   // put someone else's name on a row they can't afterwards delete.
   const { operator } = await requireSession();
+  // A bad id would 22P02 on the draft DELETE and roll back an otherwise-valid insert.
+  if (!isDraftId(draftId)) return { ok: false, error: 'Not a valid draft id' };
   try {
     const record = await commitIntake(
       { ...asObject(payload), ingestedBy: operator } as never,
@@ -116,7 +118,9 @@ function messageFor(err: unknown): string {
     if (code === '23514') return 'A value failed a database constraint.';
     // Raised by the append-only triggers.
     if (code === '23001') return 'Committed records cannot be modified.';
-    if ('message' in err) return String((err as { message: unknown }).message);
   }
-  return 'Something went wrong committing the intake.';
+  // Anything else is a server problem — pg errors and network failures name
+  // internal hosts, so the text stays out of the client. Log it here instead.
+  console.error('intake action failed:', err);
+  return 'Something went wrong writing to the database.';
 }

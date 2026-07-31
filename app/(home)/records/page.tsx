@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { listAllRecords } from '@/lib/intake';
+import { formatBytes } from '@/lib/format';
 import { requireSession } from '@/lib/session';
 
 export const dynamic = 'force-dynamic';
@@ -14,17 +15,12 @@ const BLOCKER_LABELS: Record<string, string> = {
   'smart-failing': 'SMART failing',
 };
 
-function gb(bytes: number | null, base: 1024 | 1000) {
-  if (bytes === null) return '—';
-  const n = bytes;
-  if (n === 0) return 'None';
-  if (base === 1000 && n >= 1000 ** 4) return `${n / 1000 ** 4} TB`;
-  return `${Math.round(n / base ** 3)} GB`;
-}
-
 export default async function RecordsPage(props: PageProps<'/records'>) {
   const { committed } = await props.searchParams;
   await requireSession();
+  // Query-string value, so anything can be in it — only show a real record id.
+  const committedId = Number(Array.isArray(committed) ? committed[0] : committed);
+  const showCommitted = Number.isInteger(committedId) && committedId > 0;
   const records = await listAllRecords();
   const supersededIds = new Set(records.map((r) => r.supersedes_id).filter(Boolean));
 
@@ -46,9 +42,9 @@ export default async function RecordsPage(props: PageProps<'/records'>) {
         </Link>
       </div>
 
-      {committed && (
+      {showCommitted && (
         <p className="mt-4 rounded-lg border border-fd-primary/40 bg-fd-primary/10 px-3 py-2 text-sm">
-          Committed as record #{committed}.
+          Committed as record #{committedId}.
         </p>
       )}
 
@@ -104,8 +100,8 @@ export default async function RecordsPage(props: PageProps<'/records'>) {
                     <td className="whitespace-nowrap px-3 py-2.5 font-mono text-xs">{r.identifier}</td>
                     <td className="whitespace-nowrap px-3 py-2.5">{r.model ?? '—'}</td>
                     <td className="px-3 py-2.5 tabular-nums">{r.year ?? '—'}</td>
-                    <td className="whitespace-nowrap px-3 py-2.5">{gb(r.ram_bytes, 1024)}</td>
-                    <td className="whitespace-nowrap px-3 py-2.5">{gb(r.hd_bytes, 1000)}</td>
+                    <td className="whitespace-nowrap px-3 py-2.5">{formatBytes(r.ram_bytes, 1024)}</td>
+                    <td className="whitespace-nowrap px-3 py-2.5">{formatBytes(r.hd_bytes, 1000)}</td>
                     <td className="whitespace-nowrap px-3 py-2.5">
                       {r.battery_health === null ? '—' : `${r.battery_health}%`}
                       {r.battery_cycles !== null && (

@@ -35,8 +35,11 @@ const optionalInt = (min: number, max: number) =>
       const t = typeof v === 'string' ? v.trim() : v;
       return t === '' ? null : Number(t);
     })
-    .refine((v) => v === null || (Number.isFinite(v) && v >= min && v <= max), {
-      message: `must be between ${min} and ${max}`,
+    // Integer, not just finite — these land in integer columns, and a 94.5
+    // battery reading has to fail here with a field error, not as a 22P02 at
+    // commit after the operator filled in everything else.
+    .refine((v) => v === null || (Number.isInteger(v) && v >= min && v <= max), {
+      message: `must be a whole number between ${min} and ${max}`,
     });
 
 /** What the wizard holds mid-flight — everything optional, nothing trusted yet. */

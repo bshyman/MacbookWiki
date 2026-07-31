@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { STEPS, labelFor, missingRequired, type Field } from '@/lib/intake-steps';
 import { BLOCKER_LABELS, deriveBlockers, type DraftPayload } from '@/lib/intake-schema';
+import { formatBytes } from '@/lib/format';
 import { MODELS, identifiersOf } from '@/lib/models';
 import { commitDraft, syncDraft } from '@/app/(home)/intake/actions';
 
@@ -459,12 +460,8 @@ function human(key: keyof DraftPayload, value: unknown): string {
   // Selects carry their own wording — show 'N/A — Apple Silicon', not 'n/a'.
   const label = labelFor(key, value);
   if (label) return label;
-  if (key === 'ramBytes') return `${Math.round(Number(value) / 1024 ** 3)} GB`;
-  if (key === 'hdBytes') {
-    const n = Number(value);
-    if (n === 0) return 'None';
-    return n >= 1000 ** 4 ? `${n / 1000 ** 4} TB` : `${Math.round(n / 1000 ** 3)} GB`;
-  }
+  if (key === 'ramBytes') return formatBytes(Number(value), 1024);
+  if (key === 'hdBytes') return formatBytes(Number(value), 1000);
   if (key === 'batteryHealth') return `${value}%`;
   return String(value);
 }

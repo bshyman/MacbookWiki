@@ -75,6 +75,15 @@ export function listDrafts(limit = 50) {
 }
 
 /**
+ * Every draft id, uncapped — the localStorage pruner treats anything not in this
+ * set as an orphan, so a capped list would eat live drafts' crash-recovery copies.
+ */
+export async function listDraftIds(): Promise<string[]> {
+  const rows = await query<{ id: string }>(`SELECT id FROM intake_drafts`);
+  return rows.map((r) => r.id);
+}
+
+/**
  * Whole-payload write. The wizard keeps the authoritative copy in local state and
  * syncs on step change, so last-write-wins is the intended behaviour — one
  * operator per draft, no concurrent editors to merge.

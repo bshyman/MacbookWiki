@@ -16,6 +16,13 @@ const { rewrite: rewriteSuffix } = rewritePath(
   `${docsContentRoute}{/*path}/content.md`,
 );
 
+// Static assets never need a session check or markdown negotiation. Everything
+// else stays in — /docs/foo.md must keep matching for the suffix rewrite, so no
+// blanket has-a-dot exclusion.
+export const config = {
+  matcher: ['/((?!_next/|favicon.ico).*)'],
+};
+
 export default async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 

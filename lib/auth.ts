@@ -104,10 +104,12 @@ export async function passwordMatches(candidate: string): Promise<boolean> {
 
 /**
  * `?next=` comes from the URL, so it's attacker-controlled. Only same-origin
- * absolute paths get through — no protocol-relative `//evil.com`.
+ * absolute paths get through — no protocol-relative `//evil.com`, and no
+ * backslashes: browsers parse `\` as `/`, so `/\evil.com` is `//evil.com` in
+ * disguise.
  */
 export function safeNext(value: string | string[] | undefined, fallback = '/intake'): string {
   const v = Array.isArray(value) ? value[0] : value;
-  if (!v || !v.startsWith('/') || v.startsWith('//')) return fallback;
+  if (!v || !v.startsWith('/') || v.startsWith('//') || v.includes('\\')) return fallback;
   return v;
 }
