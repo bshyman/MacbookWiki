@@ -1,0 +1,83 @@
+---
+title: 7. Battery Health
+description: system_profiler when booted, ioreg in Recovery — and how to read the capacity values per era.
+---
+
+<Tabs items={['Booted into macOS', 'In Recovery']}>
+  <Tab value="Booted into macOS">
+
+Use this. It reports a percentage directly — no unit interpretation, no version drift.
+
+```bash
+system_profiler SPPowerDataType
+# if command not found:
+/usr/sbin/system_profiler SPPowerDataType
+```
+
+Read off **Cycle Count**, **Maximum Capacity**, and **Condition**. Done — skip to [Step 8](/docs/steps/activation-lock-mdm).
+
+  </Tab>
+  <Tab value="In Recovery">
+
+Recovery on Apple Silicon often can't run `system_profiler SPPowerDataType` cleanly, so read the battery controller directly:
+
+```bash
+ioreg -rc AppleSmartBattery | egrep "DesignCapacity|MaxCapacity|CycleCount"
+```
+
+`DesignCapacity`, `MaxCapacity`, and `CycleCount` are field names in the output — each line reports the key followed by its value, e.g. `"MaxCapacity" = 6200`. On Apple Silicon the same command also surfaces an `AppleRawMaxCapacity` line (the `MaxCapacity` pattern matches it as a substring); you'll need it below.
+
+  </Tab>
+</Tabs>
+
+## Interpret the Capacity Values
+
+The unit `MaxCapacity` uses depends on the Mac. **Read the output, not the model**, to tell which case you're in:
+
+| What you see | Era | What to do |
+| --- | --- | --- |
+| `MaxCapacity` in the thousands (4000–8000), no `AppleRawMaxCapacity` | Pre-T2 Intel (2017 & older) | Raw mAh — use the formula below |
+| `MaxCapacity` ≤ 100, no `AppleRawMaxCapacity` | T2 Intel (2018–2020) | Already a percentage — record directly |
+| `MaxCapacity` ≤ 100, `AppleRawMaxCapacity` present | Apple Silicon (M1+, 2020+) | **Don't trust the percentage** — use `AppleRawMaxCapacity` with the formula |
+
+<Callout type="warn" title="Apple Silicon pins MaxCapacity near 100">
+  On M-series Macs `MaxCapacity` is commonly reported at or near 100 and ignores real wear. Always
+  compute from `AppleRawMaxCapacity` instead.
+</Callout>
+
+## Battery Health Formula
+
+Whenever you have a raw mAh value — `MaxCapacity` on pre-T2 Intel, `AppleRawMaxCapacity` on Apple Silicon — divide it by `DesignCapacity` and multiply by 100. This is arithmetic on two numbers, not a command to run:
+
+```text
+(raw mAh value) / (DesignCapacity value) * 100
+```
+
+Examples:
+
+```text
+Pre-T2 Intel:   MaxCapacity 6200 / DesignCapacity 6900          = ~90%
+Apple Silicon:  AppleRawMaxCapacity 4100 / DesignCapacity 4380  = ~94%
+T2 Intel:       MaxCapacity = 89 (already a percentage)          → 89%
+```
+
+Compare the cycle count against the model's rated maximum — the **Battery** column on the [model lookup](/) carries it. Almost every notebook since Mid-2009 is rated for 1000 cycles; older ones for 300–500.
+
+## If the Data Is Missing
+
+Recovery battery reporting is unreliable on T2 and some Apple Silicon Macs — expect occasional missing or incomplete values. Recovery intentionally loads a reduced environment: hardware identification works well, battery telemetry may not, because it depends on power-management services, SMC communication, and OS-level frameworks that recoveryOS doesn't fully start.
+
+Escalation path, cheapest first:
+
+<Steps>
+<Step>Re-run the `ioreg` command — it intermittently returns partial output on first call.</Step>
+<Step>Boot normally and use an existing account if one is available.</Step>
+<Step>Otherwise create a temporary local account, run `system_profiler SPPowerDataType`, then remove the account or erase the machine in [Step 9](/docs/steps/disk-utility).</Step>
+</Steps>
+
+<Callout title="Rule of thumb">
+  `ioreg` in Recovery, `system_profiler SPPowerDataType` everywhere else. When you parse `ioreg`,
+  target each key by name (`DesignCapacity`, `MaxCapacity`, `AppleRawMaxCapacity`, `CycleCount`)
+  rather than by output ordering — Apple has quietly renamed and added these fields between macOS
+  releases.
+</Callout>

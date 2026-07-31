@@ -1,0 +1,73 @@
+---
+title: 2. Power On and Read the Screen
+description: Five possible screens, each routing somewhere different. Find yours and follow it.
+---
+
+Whatever the Mac shows first tells you which path you're on. Find your screen below.
+
+```text
+Power on
+   │
+   ├─ Padlock + password field ......... Scenario E → Step 3 (firmware password)
+   ├─ macOS Utilities window ........... Scenario D → Step 5 (already in Recovery)
+   ├─ Hello / Setup Assistant .......... Scenario A → Step 4
+   ├─ Someone's desktop / logged in .... Scenario B → Step 6 (booted, best case)
+   ├─ Login screen, password unknown ... Scenario C → Step 4
+   └─ Nothing / no display ............. Apple Diagnostics, then Step 4
+```
+
+## Scenario A — Welcome / Setup Screen
+
+Country selection, the Hello animation, or Setup Assistant.
+
+<Callout type="warn" title="Do not complete setup">
+  Creating an account here costs time and has to be undone later.
+</Callout>
+
+1. Note whether Setup Assistant asks for a previous owner's Apple ID — that means **Activation Lock is on**, and it's the only way to read lock state without booting. See [Step 8](/docs/steps/activation-lock-mdm).
+2. Note whether a **Remote Management** screen appears — that means DEP/MDM supervision.
+3. Boot into Recovery instead → [Step 4](/docs/steps/enter-recovery).
+
+## Scenario B — Existing User Desktop
+
+Already logged in, or the password is known. This is the best case: every command works and battery data is reliable.
+
+1. Apple menu → About This Mac for fast identification.
+2. Open Terminal (`/Applications/Utilities/Terminal.app`) and run the intake commands.
+3. Use `system_profiler SPPowerDataType` for battery — no unit interpretation needed.
+
+Skip ahead to [Step 6](/docs/steps/intake-commands).
+
+## Scenario C — Locked / Unknown Password
+
+Login screen with no usable credentials.
+
+1. Boot Recovery and gather hardware data — none of it needs the account password.
+2. Evaluate [Activation Lock / MDM status](/docs/steps/activation-lock-mdm) before planning an erase.
+
+Continue to [Step 4](/docs/steps/enter-recovery).
+
+## Scenario D — Boots Straight Into Recovery
+
+The Mac goes directly to the **macOS Utilities** window without you holding any keys. You didn't do anything wrong — the Mac couldn't find a bootable system and fell back to recoveryOS on its own.
+
+Three causes, distinguishable in [Step 5](/docs/steps/disk-and-volume):
+
+| What you'll find | Cause |
+| --- | --- |
+| Disk Utility shows a healthy disk with no `Macintosh HD` volume | Previously erased — normal for a wiped trade-in |
+| A `Macintosh HD` volume exists but won't boot | Corrupt system volume — try First Aid |
+| No internal physical disk listed at all | SSD failed or was removed — flag it, this is a parts unit |
+
+You're already where Step 4 was trying to get you, so skip it → [Step 5](/docs/steps/disk-and-volume).
+
+## Scenario E — Padlock and a Password Field
+
+A grey padlock icon above a single password box, appearing *instead of* the Apple logo. This is a **firmware password**, and it blocks Recovery, external boot, and startup-disk changes until it's entered.
+
+<Callout type="info">
+  **Intel only.** Apple Silicon has no firmware password — a password prompt on an M-series Mac is
+  FileVault or the account password, not firmware.
+</Callout>
+
+Record **Firmware Locked = Yes** and go clear it → [Step 3](/docs/steps/firmware-password).

@@ -1,0 +1,57 @@
+---
+title: 5. Select the Disk and Volume
+description: Recovery asks which disk before it lets you do anything — what's offered tells you the state of the drive.
+---
+
+On an unknown machine this prompt is a data point, not an obstacle.
+
+## The Boot-Device Picker
+
+<Tabs items={['Intel', 'Apple Silicon']}>
+  <Tab value="Intel">
+
+**Startup Manager.** Power on holding **Option (⌥)**. Every bootable device appears as an icon: internal volumes, external drives, `Recovery`, and `Network` if internet Recovery is available.
+
+Blocked by a firmware password — see [Step 3](/docs/steps/firmware-password).
+
+  </Tab>
+  <Tab value="Apple Silicon">
+
+**Options screen.** Hold power until "Loading startup options". The same picker, plus the **Options** gear that leads to recoveryOS.
+
+External boot additionally requires lowering to **Reduced Security** in Startup Security Utility, plus admin auth.
+
+  </Tab>
+</Tabs>
+
+## "Select the volume you want to recover"
+
+Recovery shows this when more than one system volume exists, or on Apple Silicon before unlocking an encrypted volume.
+
+- **`Macintosh HD` (or a renamed equivalent) is listed** → select it. If it's FileVault-encrypted you'll be asked for a password; you don't need it for hardware intake — cancel out and go to Terminal anyway. Every command in [Step 6](/docs/steps/intake-commands) reads hardware, not the disk.
+- **Only `Macintosh HD - Data` is listed** → the system volume is missing. Erase and reinstall is the path.
+- **Nothing is listed** → see [No Volume Offered](#no-volume-offered) below.
+
+## "Select a user you know the password for"
+
+Apple Silicon and T2 Macs ask this to unlock the disk before giving you Disk Utility's full function.
+
+<Callout title="You can skip this prompt">
+  You do **not** need to satisfy it for intake. Cancel or click back — **Utilities menu → Terminal**
+  stays available, and every command in [Step 6](/docs/steps/intake-commands) works without it. You
+  only need credentials to *erase* a FileVault-protected volume, and only on some macOS versions.
+</Callout>
+
+If you can't get past it and the unit must be wiped, note it and handle the erase in [Step 9](/docs/steps/disk-utility).
+
+## No Volume Offered
+
+The picker is empty, or only `Recovery` appears. Open **Disk Utility** and turn on **View → Show All Devices** — this is the single most important setting in Recovery, and it's off by default.
+
+| Disk Utility shows | Meaning | Action |
+| --- | --- | --- |
+| Physical disk, no volumes under it | Erased — a clean wiped unit | Normal. Record capacity, reinstall if required |
+| Physical disk, volumes present but greyed out | Encrypted or corrupt container | Run First Aid — [Step 9](/docs/steps/disk-utility) |
+| No internal physical disk at all | SSD removed or failed | Flag as a parts unit. Record **HD = none** |
+
+On pre-2016 MacBook Pros the SSD is removable, so "no disk" often means it was pulled before intake — check the **SSD removed?** note from [Step 1](/docs/steps/physical-inspection).

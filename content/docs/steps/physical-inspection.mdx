@@ -1,0 +1,55 @@
+---
+title: 1. Physical Inspection
+description: Cosmetic condition, visual model clues, and power-on checks — fills Physical Issues and Functional Issues.
+---
+
+## Before Powering On
+
+Record for the **Physical Issues** column:
+
+- Cosmetic condition (dents, scratches, scuffs)
+- Screen damage — cracks, delamination, stains
+- Keyboard condition — missing, sticky, or worn keys
+- Missing screws
+- Signs of liquid damage
+- Engraving/stickers
+- Charger included?
+- SSD removed?
+
+## Visual Identification Clues
+
+These narrow the model before you can run a single command — useful when the device won't boot at all.
+
+| Feature | What it tells you |
+| --- | --- |
+| Notch in display | MacBook Pro 14"/16" (late 2021 or newer) or MacBook Air M2/M3 (2022+) |
+| Touch Bar above keyboard | Intel MacBook Pro, 2016–2020 |
+| MagSafe port + HDMI + SD card slot | MacBook Pro 14"/16", 2021+ (Apple Silicon Pro/Max) |
+| USB-C ports only, no MagSafe | 2016–2020 MacBook Pro, or M1 MacBook Air/Pro 13" (2020–2022) |
+| USB-A ports present | Pre-2016 MacBook Pro |
+| Wedge-shaped chassis | MacBook Air (any generation through M2; M3 still wedge, M-series Pro is flat) |
+| Function row keys (F1–F12) instead of Touch Bar | Pre-2016 Intel or 2021+ Apple Silicon Pro |
+| White/silver Apple logo on lid (non-illuminated) | 2016 or newer |
+| Glowing Apple logo on lid | 2015 or older |
+
+The A-number is engraved on the bottom of the chassis — that's the **Model** column, readable without powering the unit on. See [Model](/docs/reference/column-index#model).
+
+## Power-On Checks
+
+Record for the **Functional Issues** column:
+
+- Does it power on?
+- Does it chime? (Intel only — Apple Silicon Macs don't chime)
+- Backlight?
+- Trackpad click?
+- Fan spin?
+- Display uniform, no dead pixels or backlight bleed?
+
+For anything you can't confirm by eye, run Apple Diagnostics — it needs no OS and no password:
+
+<Tabs items={['Intel', 'Apple Silicon']}>
+  <Tab value="Intel">Power on holding **D**.</Tab>
+  <Tab value="Apple Silicon">Hold the power button until "Loading startup options", then press **⌘D**.</Tab>
+</Tabs>
+
+Note the reference codes it returns; they go in **Functional Issues**.

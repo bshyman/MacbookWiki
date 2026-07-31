@@ -1,0 +1,56 @@
+---
+title: 4. Enter Recovery
+description: Cmd+R on Intel, power-hold on Apple Silicon — timing matters on both.
+---
+
+<Tabs items={['Intel', 'Apple Silicon']}>
+  <Tab value="Intel">
+
+<Steps>
+<Step>
+Turn the Mac on (or restart it) and **immediately** press and hold **Command (⌘) + R** — start holding right after pressing power, before or during the startup chime, not after the screen lights up.
+</Step>
+<Step>
+Keep holding both keys until the **Apple logo or a spinning globe** appears, then release. Don't let go at the chime — too early and it boots normally.
+</Step>
+<Step>
+Wait for the **macOS Utilities** window to load.
+</Step>
+</Steps>
+
+Related combinations, held the exact same way — press immediately, release at the Apple logo/globe:
+
+| Keys | What you get |
+| --- | --- |
+| **⌘R** | Built-in Recovery; the latest macOS that was installed on this Mac |
+| **⌥⌘R** | Internet Recovery; upgrades to the latest macOS this Mac supports |
+| **⇧⌥⌘R** | Internet Recovery; the macOS the Mac shipped with (or closest still available) |
+| **⌥** | Startup Manager, the boot-device picker — see [Step 5](/docs/steps/disk-and-volume) |
+
+<Callout type="warn">
+  If a padlock prompt appears instead of the Apple logo, that's a firmware password — go to
+  [Step 3](/docs/steps/firmware-password).
+</Callout>
+
+  </Tab>
+  <Tab value="Apple Silicon">
+
+<Steps>
+<Step>
+Press and hold the power button until **"Loading startup options"** appears.
+</Step>
+<Step>
+Release the power button.
+</Step>
+<Step>
+Click **Options**, then **Continue**.
+</Step>
+<Step>
+If prompted, select a volume and enter the admin password.
+</Step>
+</Steps>
+
+The screen you land on at step 3 is the boot-device picker — the Apple Silicon equivalent of Startup Manager.
+
+  </Tab>
+</Tabs>

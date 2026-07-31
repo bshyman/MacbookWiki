@@ -1,0 +1,48 @@
+---
+title: 8. Activation Lock and MDM
+description: The two checks that decide whether a unit is sellable at all. Both require a booted macOS.
+---
+
+<Callout type="warn" title="Booted checks only">
+  Neither of these works in Recovery. If you can't boot macOS, use the Setup Assistant visual cues
+  noted below.
+</Callout>
+
+## Activation Lock
+
+Booted into macOS, via Terminal:
+
+```bash
+system_profiler SPHardwareDataType | grep -i "activation"
+```
+
+Returns `Activation Lock Status: Enabled` or `Disabled` on T2 Intel and Apple Silicon. The same value appears in System Settings → General → About.
+
+If **Enabled**, the machine cannot be resold or fully wiped without the original owner's Apple ID. Stop intake and flag it.
+
+**This does not work in Recovery.** The field is populated by the running OS, so `system_profiler` in recoveryOS usually returns nothing — an empty result there tells you nothing about lock state. If you can't boot macOS, judge Activation Lock from Setup Assistant instead: being prompted to sign in with the previous owner's Apple ID during activation means the device is locked.
+
+<Callout type="warn" title="An empty result is not a clean bill of health">
+  Pre-T2 Intel Macs (2017 and older) do not support Activation Lock at all, so the command returns
+  nothing on those machines — that's expected. Confirm the era from
+  [Apple Silicon vs Intel](/docs/reference/apple-silicon-vs-intel) before interpreting an empty result.
+</Callout>
+
+## MDM Enrollment
+
+Booted into macOS, via Terminal:
+
+```bash
+profiles status -type enrollment
+```
+
+Look for:
+
+- `Enrolled via DEP: Yes` — the device re-enrolls automatically after a wipe. Treat as MDM-locked.
+- `MDM enrollment: Yes` — currently managed. The field is singular in the output; a clean machine reports `No` for both lines.
+
+The `profiles` binary **does not exist in recoveryOS** — running it there gives "command not found."
+
+Visual cue, no login needed: if Setup Assistant shows a **Remote Management** screen, the device is DEP-supervised.
+
+If DEP-enrolled, the original org must release it from their MDM before resale.
