@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { messageFor } from '@/lib/action-errors';
 import {
   commitIntake,
   createDraft,
@@ -102,25 +103,4 @@ export async function discardDraft(id: string) {
   await deleteDraft(id);
   revalidatePath('/intake');
   redirect('/intake');
-}
-
-/** Turn Zod issues and Postgres constraint violations into something an operator can act on. */
-function messageFor(err: unknown): string {
-  if (err && typeof err === 'object') {
-    if ('issues' in err && Array.isArray((err as { issues: unknown[] }).issues)) {
-      return (err as { issues: { path: (string | number)[]; message: string }[] }).issues
-        .map((i) => `${i.path.join('.') || 'value'}: ${i.message}`)
-        .join('; ');
-    }
-    const code = (err as { code?: string }).code;
-    // A correction already exists for this record — the chain stays linear.
-    if (code === '23505') return 'That record already has a correction.';
-    if (code === '23514') return 'A value failed a database constraint.';
-    // Raised by the append-only triggers.
-    if (code === '23001') return 'Committed records cannot be modified.';
-  }
-  // Anything else is a server problem — pg errors and network failures name
-  // internal hosts, so the text stays out of the client. Log it here instead.
-  console.error('intake action failed:', err);
-  return 'Something went wrong writing to the database.';
 }
