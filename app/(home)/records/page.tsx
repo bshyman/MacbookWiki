@@ -1,28 +1,57 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
-import { listAllRecords } from '@/lib/intake';
+import { RecordsTable, type RecordRow } from '@/components/records-table';
 import { formatBytes } from '@/lib/format';
+import { RECORDS_LIMIT, countAllRecords, listAllRecords } from '@/lib/intake';
 import { requireSession } from '@/lib/session';
 
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = { title: 'Records' };
 
-const BLOCKER_LABELS: Record<string, string> = {
-  'activation-lock': 'Activation Lock',
-  'mdm-enrolled': 'DEP/MDM',
-  'firmware-locked': 'Firmware',
-  'smart-failing': 'SMART failing',
-};
+/** Query-string values, so anything can be in them — only show a real number. */
+function positiveInt(value: string | string[] | undefined): number | null {
+  const n = Number(Array.isArray(value) ? value[0] : value);
+  return Number.isInteger(n) && n > 0 ? n : null;
+}
 
 export default async function RecordsPage(props: PageProps<'/records'>) {
-  const { committed } = await props.searchParams;
+  const { committed, imported } = await props.searchParams;
   await requireSession();
-  // Query-string value, so anything can be in it — only show a real record id.
-  const committedId = Number(Array.isArray(committed) ? committed[0] : committed);
-  const showCommitted = Number.isInteger(committedId) && committedId > 0;
-  const records = await listAllRecords();
+
+  const committedId = positiveInt(committed);
+  const importedCount = positiveInt(imported);
+
+  const [records, total] = await Promise.all([listAllRecords(), countAllRecords()]);
   const supersededIds = new Set(records.map((r) => r.supersedes_id).filter(Boolean));
+
+  // Flatten here so the client component never sees a Date. Timestamps render in
+  // UTC rather than a locale — the old page formatted with the *server's* locale,
+  // which is both wrong for an audit ledger and a hydration mismatch.
+  const rows: RecordRow[] = records.map((r) => ({
+    id: r.id,
+    serial: r.serial,
+    identifier: r.identifier,
+    name: r.name,
+    model: r.model,
+    cpu: r.cpu,
+    year: r.year,
+    ramBytes: r.ram_bytes,
+    hdBytes: r.hd_bytes,
+    ram: formatBytes(r.ram_bytes, 1024),
+    hd: formatBytes(r.hd_bytes, 1000),
+    batteryHealth: r.battery_health,
+    batteryCycles: r.battery_cycles,
+    blockers: r.blockers,
+    physicalIssues: r.physical_issues,
+    functionalIssues: r.functional_issues,
+    processedAt: `${r.processed_at.toISOString().slice(0, 16).replace('T', ' ')} UTC`,
+    processedAtIso: r.processed_at.toISOString(),
+    ingestedBy: r.ingested_by,
+    supersedesId: r.supersedes_id,
+    correctionNote: r.correction_note,
+    superseded: supersededIds.has(r.id),
+  }));
 
   return (
     <main className="mx-auto w-full max-w-[1500px] px-6 py-8">
@@ -34,123 +63,46 @@ export default async function RecordsPage(props: PageProps<'/records'>) {
             supersedes the original, and both stay.
           </p>
         </div>
-        <Link
-          href="/intake"
-          className="rounded-lg bg-fd-primary px-4 py-2 text-sm font-medium text-fd-primary-foreground"
-        >
-          New intake
-        </Link>
+        <div className="flex flex-wrap items-center gap-2">
+          <a
+            href="/records/export"
+            className="rounded-lg border border-fd-border px-4 py-2 text-sm"
+          >
+            Export CSV
+          </a>
+          <Link
+            href="/records/import"
+            className="rounded-lg border border-fd-border px-4 py-2 text-sm"
+          >
+            Import CSV
+          </Link>
+          <Link
+            href="/intake"
+            className="rounded-lg bg-fd-primary px-4 py-2 text-sm font-medium text-fd-primary-foreground"
+          >
+            New intake
+          </Link>
+        </div>
       </div>
 
-      {showCommitted && (
+      {committedId !== null && (
         <p className="mt-4 rounded-lg border border-fd-primary/40 bg-fd-primary/10 px-3 py-2 text-sm">
           Committed as record #{committedId}.
         </p>
       )}
 
-      {records.length === 0 ? (
+      {importedCount !== null && (
+        <p className="mt-4 rounded-lg border border-fd-primary/40 bg-fd-primary/10 px-3 py-2 text-sm">
+          Imported {importedCount.toLocaleString()} record{importedCount === 1 ? '' : 's'}.
+        </p>
+      )}
+
+      {rows.length === 0 ? (
         <p className="mt-6 rounded-xl border border-dashed border-fd-border px-4 py-10 text-center text-sm text-fd-muted-foreground">
           Nothing committed yet.
         </p>
       ) : (
-        <div className="mt-6 overflow-x-auto rounded-xl border border-fd-border">
-          <table className="w-full min-w-[1200px] text-sm">
-            <thead>
-              <tr className="border-b border-fd-border bg-fd-card text-left">
-                {['#', 'Name', 'Serial', 'Identifier', 'Model', 'Year', 'RAM', 'HD', 'Battery', 'Locks', 'Processed', 'By', ''].map(
-                  (h, i) => (
-                    <th key={h || i} className="whitespace-nowrap px-3 py-2.5 font-semibold">
-                      {h}
-                    </th>
-                  ),
-                )}
-              </tr>
-            </thead>
-            <tbody>
-              {records.map((r) => {
-                const superseded = supersededIds.has(r.id);
-                return (
-                  <tr
-                    key={r.id}
-                    className={`border-b border-fd-border/60 last:border-0 ${
-                      superseded ? 'text-fd-muted-foreground' : ''
-                    }`}
-                  >
-                    <td className="whitespace-nowrap px-3 py-2.5 tabular-nums">
-                      {r.id}
-                      {superseded && (
-                        <span
-                          className="ml-1.5 rounded bg-fd-secondary px-1.5 py-0.5 text-[10px] uppercase"
-                          title="A later record corrects this one"
-                        >
-                          superseded
-                        </span>
-                      )}
-                      {r.supersedes_id && (
-                        <span
-                          className="ml-1.5 cursor-help rounded bg-fd-primary/15 px-1.5 py-0.5 text-[10px] uppercase text-fd-primary"
-                          title={r.correction_note ?? undefined}
-                        >
-                          corrects #{r.supersedes_id}
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-3 py-2.5">{r.name ?? '—'}</td>
-                    <td className="whitespace-nowrap px-3 py-2.5 font-mono text-xs">{r.serial}</td>
-                    <td className="whitespace-nowrap px-3 py-2.5 font-mono text-xs">{r.identifier}</td>
-                    <td className="whitespace-nowrap px-3 py-2.5">{r.model ?? '—'}</td>
-                    <td className="px-3 py-2.5 tabular-nums">{r.year ?? '—'}</td>
-                    <td className="whitespace-nowrap px-3 py-2.5">{formatBytes(r.ram_bytes, 1024)}</td>
-                    <td className="whitespace-nowrap px-3 py-2.5">{formatBytes(r.hd_bytes, 1000)}</td>
-                    <td className="whitespace-nowrap px-3 py-2.5">
-                      {r.battery_health === null ? '—' : `${r.battery_health}%`}
-                      {r.battery_cycles !== null && (
-                        <span className="text-fd-muted-foreground"> · {r.battery_cycles}c</span>
-                      )}
-                    </td>
-                    <td className="px-3 py-2.5">
-                      {r.blockers.length === 0 ? (
-                        <span className="text-fd-muted-foreground">clear</span>
-                      ) : (
-                        <span className="flex flex-wrap gap-1">
-                          {r.blockers.map((b) => (
-                            <span
-                              key={b}
-                              className="whitespace-nowrap rounded bg-amber-500/15 px-1.5 py-0.5 text-[11px] text-amber-700 dark:text-amber-400"
-                            >
-                              {BLOCKER_LABELS[b] ?? b}
-                            </span>
-                          ))}
-                        </span>
-                      )}
-                    </td>
-                    <td className="whitespace-nowrap px-3 py-2.5 text-xs">
-                      {new Date(r.processed_at).toLocaleString()}
-                    </td>
-                    <td className="whitespace-nowrap px-3 py-2.5">{r.ingested_by}</td>
-                    <td className="whitespace-nowrap px-3 py-2.5 text-right">
-                      {superseded ? (
-                        <span
-                          className="text-xs text-fd-muted-foreground"
-                          title="Already corrected — correct its successor instead"
-                        >
-                          —
-                        </span>
-                      ) : (
-                        <Link
-                          href={`/records/${r.id}/correct`}
-                          className="text-xs text-fd-primary underline underline-offset-2"
-                        >
-                          Correct
-                        </Link>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+        <RecordsTable rows={rows} total={total} limit={RECORDS_LIMIT} />
       )}
     </main>
   );
