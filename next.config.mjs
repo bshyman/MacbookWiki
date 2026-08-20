@@ -12,6 +12,14 @@ const config = {
     root: import.meta.dirname,
   },
 
+  experimental: {
+    // CSV import posts the whole file as a server-action argument. Default is
+    // 1mb; a capped 2,000-row file is ~400 KB, so 4mb is generous headroom.
+    // Don't raise this past 10mb without also raising proxyClientMaxBodySize —
+    // the proxy matcher covers every path and buffers there first.
+    serverActions: { bodySizeLimit: '4mb' },
+  },
+
   // Dev only. Next blocks cross-origin access to /_next/* dev resources, which
   // silently prevents hydration when the app is opened from anything other than
   // localhost — a LAN address from a phone on the bench, for instance.
