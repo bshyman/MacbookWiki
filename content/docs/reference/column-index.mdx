@@ -207,6 +207,40 @@ sw_vers                    # which macOS it shipped out on
 
 Erasing does **not** clear Activation Lock or DEP enrollment — check [Step 8](/docs/steps/activation-lock-mdm) first.
 
+## Activation Lock
+
+```bash
+# Booted into macOS
+system_profiler SPHardwareDataType | grep -i "Activation Lock"
+```
+
+```text
+Activation Lock Status: Disabled
+```
+
+One of `enabled`, `disabled`, `unsupported`, `unknown`. Record `unsupported` on pre-T2 Intel machines, which have no Activation Lock at all. Full procedure in [Step 8](/docs/steps/activation-lock-mdm).
+
+<Callout type="warn" title="Leave it unknown rather than guessing">
+  A unit you couldn't boot has an **unknown** status, not a disabled one. `enabled` is a blocker —
+  the machine can't be resold until the previous owner releases it — so an optimistic guess here is
+  the one that costs money later.
+</Callout>
+
+## MDM Enrolled
+
+```bash
+profiles status -type enrollment
+```
+
+```text
+Enrolled via DEP: Yes
+MDM enrollment: Yes (User Approved)
+```
+
+One of `yes`, `no`, `unknown`. `Enrolled via DEP: Yes` means the unit re-enrolls itself after any erase, so it stays a blocker regardless of what [OS Reset](#os-reset) says. Same rule as above — record `unknown` when you couldn't check, never `no`.
+
 ## Processed At / Ingested By
 
 Manual. Date/time you finished intake, and your name.
+
+Both are stamped automatically by the app: the wizard and the CSV importer record the moment you commit and the operator you signed in as. Columns with these names in an imported file are ignored — attribution on an append-only ledger has to reflect who actually put the row there.
