@@ -33,6 +33,12 @@ export interface IntakeRecord {
   correction_note: string | null;
 }
 
+/** A ledger row plus its archive marker, for queries that join intake_archived. */
+export interface ArchivedRecord extends IntakeRecord {
+  archived_at: Date | null;
+  archived_by: string | null;
+}
+
 export interface IntakeDraft {
   id: string;
   step: number;
@@ -224,10 +230,13 @@ export function listCurrentRecords(limit = 200) {
   );
 }
 
-/** Full ledger including superseded rows, for audit. */
+/** Full ledger including superseded and archived rows, for audit. */
 export function listAllRecords(limit = RECORDS_LIMIT) {
-  return query<IntakeRecord>(
-    `SELECT * FROM intake_records ORDER BY id DESC LIMIT $1`,
+  return query<ArchivedRecord>(
+    `SELECT r.*, a.archived_at, a.archived_by
+       FROM intake_records r
+       LEFT JOIN intake_archived a ON a.record_id = r.id
+      ORDER BY r.id DESC LIMIT $1`,
     [limit],
   );
 }
@@ -248,10 +257,17 @@ export async function maxRecordId(): Promise<number | null> {
  * and rows are never deleted, so paging down by id is a consistent snapshot
  * without holding a transaction — anything inserted mid-export sorts above the
  * starting cursor and simply doesn't appear.
+ *
+ * Archived rows are filtered in the WHERE, not after, so a page still comes back
+ * full and the caller's "short page means done" check stays correct. Ticking
+ * archived rows in the table and using the selection export still gets them out.
  */
 export function recordsPage(beforeId: number, limit: number) {
   return query<IntakeRecord>(
-    `SELECT * FROM intake_records WHERE id < $1 ORDER BY id DESC LIMIT $2`,
+    `SELECT r.* FROM intake_records r
+      WHERE r.id < $1
+        AND NOT EXISTS (SELECT 1 FROM intake_archived a WHERE a.record_id = r.id)
+      ORDER BY r.id DESC LIMIT $2`,
     [beforeId, limit],
   );
 }
@@ -268,12 +284,44 @@ export function recordsByIds(ids: number[]) {
   );
 }
 
-/** Which of these serials are already in the ledger, and as which records. */
+// ----------------------------------------------------------------- archive ---
+
+/**
+ * Mark a record archived. Idempotent — archiving an already-archived record is
+ * a no-op rather than an error, so a double-submit doesn't surface as one.
+ * Returns null in that case.
+ */
+export function archiveRecord(id: number, by: string, reason: string | null) {
+  return queryOne<{ record_id: number }>(
+    `INSERT INTO intake_archived (record_id, archived_by, reason)
+     VALUES ($1, $2, $3)
+     ON CONFLICT (record_id) DO NOTHING
+     RETURNING record_id`,
+    [id, by, reason],
+  );
+}
+
+/** Drop the marker. Deletes from intake_archived only — never from the ledger. */
+export function unarchiveRecord(id: number) {
+  return queryOne<{ record_id: number }>(
+    `DELETE FROM intake_archived WHERE record_id = $1 RETURNING record_id`,
+    [id],
+  );
+}
+
+/**
+ * Which of these serials are already live in the ledger, and as which records.
+ *
+ * Reads intake_current, not intake_records: an archived serial has to stop
+ * counting as a duplicate or you could never re-import a file after archiving
+ * the bad version of it. Superseded rows drop out for the same reason — the
+ * answer should be the record that's true now, not every version of it.
+ */
 export async function findSerials(serials: string[]): Promise<Map<string, number[]>> {
   const found = new Map<string, number[]>();
   if (serials.length === 0) return found;
   const rows = await query<{ id: number; serial: string }>(
-    `SELECT id, serial FROM intake_records WHERE serial = ANY($1::text[]) ORDER BY id`,
+    `SELECT id, serial FROM intake_current WHERE serial = ANY($1::text[]) ORDER BY id`,
     [serials],
   );
   for (const r of rows) {

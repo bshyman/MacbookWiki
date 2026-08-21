@@ -210,8 +210,8 @@ export function CsvImport() {
         <div className={`${warnBox} flex flex-wrap items-center justify-between gap-3`}>
           <span>
             {preview.duplicateCount.toLocaleString()} of {total.toLocaleString()} rows repeat a
-            serial — already in the ledger, or used earlier in this same file. They start excluded —
-            records can never be deleted.
+            serial — already live in the ledger, or used earlier in this same file. They start
+            excluded — a committed record can be archived, but never removed.
           </span>
           <span className="flex gap-3 whitespace-nowrap">
             <button type="button" onClick={() => setAllDuplicates(true)} className="underline underline-offset-2">

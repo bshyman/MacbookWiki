@@ -1,8 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 import { Highlight } from './highlight';
+import { ArchiveDialog, type ArchiveTarget } from './archive-dialog';
+import { restore } from '@/app/(home)/records/actions';
 import { BLOCKER_BADGES } from '@/lib/intake-schema';
 
 /**
@@ -33,6 +36,8 @@ export interface RecordRow {
   supersedesId: number | null;
   correctionNote: string | null;
   superseded: boolean;
+  archived: boolean;
+  archivedBy: string | null;
 }
 
 type SortKey =
@@ -45,6 +50,7 @@ interface Filters {
   operator: string;
   status: '' | 'blocked' | 'clear';
   history: 'all' | 'current';
+  archive: 'active' | 'archived' | 'all';
   sortKey: SortKey;
   sortDir: 1 | -1;
 }
@@ -54,6 +60,9 @@ const INITIAL: Filters = {
   ident: '',
   operator: '',
   status: '',
+  // Archived rows are hidden by default — leaving them in would make archiving
+  // look like it did nothing.
+  archive: 'active',
   history: 'all',
   sortKey: 'id',
   sortDir: -1,
@@ -98,6 +107,8 @@ function matches(r: RecordRow, terms: string[], f: Filters): boolean {
   if (f.status === 'blocked' && r.blockers.length === 0) return false;
   if (f.status === 'clear' && r.blockers.length > 0) return false;
   if (f.history === 'current' && r.superseded) return false;
+  if (f.archive === 'active' && r.archived) return false;
+  if (f.archive === 'archived' && !r.archived) return false;
   if (terms.length === 0) return true;
   const blob = [
     r.id, r.serial, r.name, r.identifier, r.model, r.cpu,
@@ -123,6 +134,9 @@ export function RecordsTable({
   // the tab would silently export rows nobody meant to pick.
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const selectAllRef = useRef<HTMLInputElement>(null);
+  const [archiving, setArchiving] = useState<ArchiveTarget | null>(null);
+  const [restoring, startRestore] = useTransition();
+  const router = useRouter();
 
   useEffect(() => {
     try {
@@ -274,6 +288,20 @@ export function RecordsTable({
         </label>
 
         <label className="flex items-center gap-2 text-xs text-fd-muted-foreground">
+          Archive
+          <select
+            value={f.archive}
+            onChange={(e) => set('archive', e.target.value as Filters['archive'])}
+            className={selectClass}
+            title="Archived records stay in the ledger but drop out of the list and the export"
+          >
+            <option value="active">Active only</option>
+            <option value="archived">Archived only</option>
+            <option value="all">Include archived</option>
+          </select>
+        </label>
+
+        <label className="flex items-center gap-2 text-xs text-fd-muted-foreground">
           History
           <select
             value={f.history}
@@ -369,7 +397,7 @@ export function RecordsTable({
               <tr
                 key={r.id}
                 className={`border-b border-fd-border/60 last:border-0 hover:bg-fd-accent/40 ${
-                  r.superseded ? 'text-fd-muted-foreground' : ''
+                  r.superseded || r.archived ? 'text-fd-muted-foreground' : ''
                 }`}
               >
                 <td className="px-3 py-2.5">
@@ -397,6 +425,14 @@ export function RecordsTable({
                       title={r.correctionNote ?? undefined}
                     >
                       corrects #{r.supersedesId}
+                    </span>
+                  )}
+                  {r.archived && (
+                    <span
+                      className="ml-1.5 cursor-help rounded bg-amber-500/20 px-1.5 py-0.5 text-[10px] uppercase text-amber-700 dark:text-amber-400"
+                      title={r.archivedBy ? `Archived by ${r.archivedBy}` : undefined}
+                    >
+                      archived
                     </span>
                   )}
                 </td>
@@ -444,20 +480,52 @@ export function RecordsTable({
                   <Highlight text={r.ingestedBy} needle={needle} />
                 </td>
                 <td className="whitespace-nowrap px-3 py-2.5 text-right">
-                  {r.superseded ? (
-                    <span
-                      className="text-xs text-fd-muted-foreground"
-                      title="Already corrected — correct its successor instead"
+                  {r.archived ? (
+                    <button
+                      type="button"
+                      disabled={restoring}
+                      onClick={() =>
+                        startRestore(async () => {
+                          await restore(r.id);
+                          router.refresh();
+                        })
+                      }
+                      className="text-xs text-fd-primary underline underline-offset-2 disabled:opacity-50"
                     >
-                      —
-                    </span>
+                      Restore
+                    </button>
                   ) : (
-                    <Link
-                      href={`/records/${r.id}/correct`}
-                      className="text-xs text-fd-primary underline underline-offset-2"
-                    >
-                      Correct
-                    </Link>
+                    <span className="flex justify-end gap-3">
+                      {r.superseded ? (
+                        <span
+                          className="text-xs text-fd-muted-foreground"
+                          title="Already corrected — correct its successor instead"
+                        >
+                          —
+                        </span>
+                      ) : (
+                        <Link
+                          href={`/records/${r.id}/correct`}
+                          className="text-xs text-fd-primary underline underline-offset-2"
+                        >
+                          Correct
+                        </Link>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setArchiving({
+                            id: r.id,
+                            serial: r.serial,
+                            identifier: r.identifier,
+                            name: r.name,
+                          })
+                        }
+                        className="text-xs text-fd-muted-foreground underline underline-offset-2 hover:text-fd-foreground"
+                      >
+                        Archive
+                      </button>
+                    </span>
                   )}
                 </td>
               </tr>
@@ -475,6 +543,8 @@ export function RecordsTable({
           </tbody>
         </table>
       </div>
+
+      <ArchiveDialog target={archiving} onDismiss={() => setArchiving(null)} />
     </div>
   );
 }

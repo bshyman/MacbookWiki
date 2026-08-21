@@ -51,6 +51,8 @@ export default async function RecordsPage(props: PageProps<'/records'>) {
     supersedesId: r.supersedes_id,
     correctionNote: r.correction_note,
     superseded: supersededIds.has(r.id),
+    archived: r.archived_at !== null,
+    archivedBy: r.archived_by,
   }));
 
   return (
@@ -60,7 +62,8 @@ export default async function RecordsPage(props: PageProps<'/records'>) {
           <h1 className="text-2xl font-bold tracking-tight">Intake Records</h1>
           <p className="mt-1 text-sm text-fd-muted-foreground">
             Append-only. Rows are never edited or deleted — a correction is a new row that
-            supersedes the original, and both stay.
+            supersedes the original, and both stay. Archiving hides a record from this list
+            and the export without removing it.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
