@@ -182,7 +182,7 @@ export const STEPS: WizardStep[] = [
         key: 'activationLock',
         label: 'Activation Lock',
         kind: 'select',
-        column: '—',
+        column: 'Activation Lock',
         options: [
           { value: 'disabled', label: 'Disabled' },
           { value: 'enabled', label: 'Enabled — blocker' },
@@ -195,7 +195,7 @@ export const STEPS: WizardStep[] = [
         key: 'mdmEnrolled',
         label: 'MDM / DEP enrolled',
         kind: 'select',
-        column: '—',
+        column: 'MDM Enrolled',
         options: [
           { value: 'no', label: 'No' },
           { value: 'yes', label: 'Yes — blocker' },

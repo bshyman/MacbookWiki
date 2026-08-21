@@ -10,6 +10,9 @@
     "esModuleInterop": true,
     "module": "esnext",
     "moduleResolution": "bundler",
+    // The pure CSV modules import each other with explicit .ts extensions so
+    // `node --test` can resolve them natively — no loader, no build step.
+    "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "react-jsx",

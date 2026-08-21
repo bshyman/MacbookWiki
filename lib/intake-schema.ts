@@ -104,6 +104,14 @@ export const BLOCKER_LABELS: Record<string, string> = {
   'smart-failing': 'Functional issues mention a failing drive',
 };
 
+/** Same slugs, short enough for a table badge. Lives here so only one file knows the slugs. */
+export const BLOCKER_BADGES: Record<string, string> = {
+  'activation-lock': 'Activation Lock',
+  'mdm-enrolled': 'DEP/MDM',
+  'firmware-locked': 'Firmware',
+  'smart-failing': 'SMART failing',
+};
+
 /**
  * Anything here stops resale. Derived at commit time rather than typed, so the
  * reasons on a record always match the values recorded alongside them.

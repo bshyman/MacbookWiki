@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { Highlight } from './highlight';
 import {
   ALL_IDENTIFIERS,
   MODELS,
@@ -63,25 +64,6 @@ function matches(model: Model, terms: string[], f: Filters): boolean {
     .join(' ')
     .toLowerCase();
   return terms.every((t) => blob.includes(t));
-}
-
-function Highlight({ text, needle }: { text: string | number; needle: string }) {
-  const value = String(text);
-  if (!needle) return <>{value}</>;
-  const parts = value.split(new RegExp(`(${needle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'ig'));
-  return (
-    <>
-      {parts.map((part, i) =>
-        part.toLowerCase() === needle.toLowerCase() ? (
-          <mark key={i} className="rounded-sm bg-fd-primary/20 px-0.5 text-fd-foreground">
-            {part}
-          </mark>
-        ) : (
-          part
-        ),
-      )}
-    </>
-  );
 }
 
 const selectClass =

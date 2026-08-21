@@ -112,6 +112,16 @@ const INSERT_COLUMNS = `
   battery_health, battery_cycles, physical_issues, functional_issues,
   firmware_locked, os_reset, activation_lock, mdm_enrolled, blockers, ingested_by`;
 
+/** How many rows the records page loads. The export route ignores it. */
+export const RECORDS_LIMIT = 1000;
+
+/**
+ * Rows per INSERT statement on a bulk import. The ceiling is 65535 bind params
+ * over 18 columns (~3640 rows); 500 sits well clear and keeps the statement text
+ * small enough to stay readable in a slow-query log.
+ */
+const BULK_BATCH_ROWS = 500;
+
 function insertValues(v: ReturnType<typeof commitSchema.parse>, blockers: string[]) {
   return [
     v.serial, v.identifier, v.name, v.model, v.year, v.cpu, v.ramBytes, v.hdBytes,
@@ -166,6 +176,46 @@ export async function supersedeRecord(input: unknown) {
   return row!;
 }
 
+/**
+ * Bulk commit from a CSV import. One transaction for the whole file: the ledger
+ * has no DELETE, so ROLLBACK is the only undo that exists — a half-landed import
+ * would be permanent. Validation runs before BEGIN so a bad row never opens one.
+ */
+export async function bulkCommitIntake(inputs: CommitInput[], operator: string) {
+  // Attribution is stamped here as well as in the action — lib/intake.ts is the
+  // boundary, and every caller crosses it the same way.
+  const rows = inputs.map((input) => commitSchema.parse({ ...input, ingestedBy: operator }));
+  if (rows.length === 0) return { ids: [] as number[] };
+
+  const client = await getPool().connect();
+  try {
+    await client.query('BEGIN');
+    const ids: number[] = [];
+    for (let start = 0; start < rows.length; start += BULK_BATCH_ROWS) {
+      const batch = rows.slice(start, start + BULK_BATCH_ROWS);
+      const params: unknown[] = [];
+      const tuples = batch.map((v) => {
+        const values = insertValues(v, deriveBlockers(v));
+        const placeholders = values.map((_, i) => `$${params.length + i + 1}`);
+        params.push(...values);
+        return `(${placeholders.join(',')})`;
+      });
+      const { rows: inserted } = await client.query<{ id: number }>(
+        `INSERT INTO intake_records (${INSERT_COLUMNS}) VALUES ${tuples.join(',')} RETURNING id`,
+        params,
+      );
+      ids.push(...inserted.map((r) => r.id));
+    }
+    await client.query('COMMIT');
+    return { ids };
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
 /** Current truth — superseded rows excluded. */
 export function listCurrentRecords(limit = 200) {
   return query<IntakeRecord>(
@@ -175,11 +225,63 @@ export function listCurrentRecords(limit = 200) {
 }
 
 /** Full ledger including superseded rows, for audit. */
-export function listAllRecords(limit = 200) {
+export function listAllRecords(limit = RECORDS_LIMIT) {
   return query<IntakeRecord>(
     `SELECT * FROM intake_records ORDER BY id DESC LIMIT $1`,
     [limit],
   );
+}
+
+/** So the page can say how much of the ledger it's actually showing. */
+export async function countAllRecords(): Promise<number> {
+  const row = await queryOne<{ count: number }>(`SELECT count(*)::int AS count FROM intake_records`);
+  return row?.count ?? 0;
+}
+
+export async function maxRecordId(): Promise<number | null> {
+  const row = await queryOne<{ max: number | null }>(`SELECT max(id) AS max FROM intake_records`);
+  return row?.max ?? null;
+}
+
+/**
+ * One page of a descending keyset walk, for the CSV export. Ids are monotonic
+ * and rows are never deleted, so paging down by id is a consistent snapshot
+ * without holding a transaction — anything inserted mid-export sorts above the
+ * starting cursor and simply doesn't appear.
+ */
+export function recordsPage(beforeId: number, limit: number) {
+  return query<IntakeRecord>(
+    `SELECT * FROM intake_records WHERE id < $1 ORDER BY id DESC LIMIT $2`,
+    [beforeId, limit],
+  );
+}
+
+/**
+ * One chunk of a selection export. The caller already holds the full id list, so
+ * it slices rather than walking a cursor — no ORDER BY drift between chunks, and
+ * ids that no longer exist just come back short.
+ */
+export function recordsByIds(ids: number[]) {
+  return query<IntakeRecord>(
+    `SELECT * FROM intake_records WHERE id = ANY($1::int[]) ORDER BY id DESC`,
+    [ids],
+  );
+}
+
+/** Which of these serials are already in the ledger, and as which records. */
+export async function findSerials(serials: string[]): Promise<Map<string, number[]>> {
+  const found = new Map<string, number[]>();
+  if (serials.length === 0) return found;
+  const rows = await query<{ id: number; serial: string }>(
+    `SELECT id, serial FROM intake_records WHERE serial = ANY($1::text[]) ORDER BY id`,
+    [serials],
+  );
+  for (const r of rows) {
+    const list = found.get(r.serial);
+    if (list) list.push(r.id);
+    else found.set(r.serial, [r.id]);
+  }
+  return found;
 }
 
 export function getRecord(id: number) {

@@ -6,6 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "test": "node --test lib/csv.test.ts lib/csv-import.test.ts lib/export-ids.test.ts",
     "types:check": "fumadocs-mdx && next typegen && tsc --noEmit"
   },
   "dependencies": {
