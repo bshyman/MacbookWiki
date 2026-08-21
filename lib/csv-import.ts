@@ -88,7 +88,12 @@ export function parseBytes(raw: string, base: 1024 | 1000): number | null | 'inv
   const m = /^([\d.,]+)\s*(b|kib?|kb|mib?|mb|gib?|gb|tib?|tb)?$/i.exec(v);
   if (!m) return 'invalid';
 
-  const n = Number(m[1].replaceAll(',', ''));
+  // A mantissa of nothing but separators ("," or ",,") makes Number('') zero,
+  // which would record a real "no drive" reading out of a mangled cell.
+  const mantissa = m[1].replaceAll(',', '');
+  if (!/\d/.test(mantissa)) return 'invalid';
+
+  const n = Number(mantissa);
   if (!Number.isFinite(n) || n < 0) return 'invalid';
 
   const unit = m[2]?.toLowerCase();
@@ -209,6 +214,27 @@ export function normalizeCsv(text: string): ParsedImport {
     ignoredHeaders: match.ignored,
     rows,
   };
+}
+
+/**
+ * Rows that repeat a serial already used earlier in the same file, mapped to the
+ * line that used it first. The ledger check only asks the database, so without
+ * this a file that repeats itself — a concatenated export, a copy-pasted row —
+ * sails past the duplicate guard with every copy pre-ticked.
+ *
+ * Exact match, same as the `serial = ANY(...)` lookup. Blank serials are already
+ * a row error, so they're skipped rather than collapsed together.
+ */
+export function repeatedSerials(rows: readonly NormalizedRow[]): Map<number, number> {
+  const firstSeen = new Map<string, number>();
+  const repeats = new Map<number, number>();
+  for (const r of rows) {
+    if (r.serial === '') continue;
+    const seen = firstSeen.get(r.serial);
+    if (seen === undefined) firstSeen.set(r.serial, r.line);
+    else repeats.set(r.line, seen);
+  }
+  return repeats;
 }
 
 function normalizeRow(

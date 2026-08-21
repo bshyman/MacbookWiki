@@ -24,7 +24,7 @@ const optionalText = z
     return t === '' ? null : t;
   });
 
-const optionalInt = (min: number, max: number) =>
+const optionalInt = (min: number, max: number, message?: string) =>
   z
     .union([z.string(), z.number()])
     .nullish()
@@ -39,8 +39,16 @@ const optionalInt = (min: number, max: number) =>
     // battery reading has to fail here with a field error, not as a 22P02 at
     // commit after the operator filled in everything else.
     .refine((v) => v === null || (Number.isInteger(v) && v >= min && v <= max), {
-      message: `must be a whole number between ${min} and ${max}`,
+      message: message ?? `must be a whole number between ${min} and ${max}`,
     });
+
+/**
+ * Sanity ceilings, not spec limits. A unitless "512000" in an HD column parses as
+ * 512 TB, and the row is permanent — so a size that can only be a unit mistake
+ * fails here instead of getting written. Both sit far above any Mac that ships.
+ */
+export const MAX_RAM_BYTES = 4 * 1024 ** 4; // 4 TiB
+export const MAX_HD_BYTES = 100 * 1000 ** 4; // 100 TB
 
 /** What the wizard holds mid-flight — everything optional, nothing trusted yet. */
 export const draftPayloadSchema = z
@@ -75,8 +83,8 @@ export const commitSchema = z.object({
   model: optionalText,
   year: optionalInt(2006, 2100),
   cpu: optionalText,
-  ramBytes: optionalInt(1, Number.MAX_SAFE_INTEGER),
-  hdBytes: optionalInt(0, Number.MAX_SAFE_INTEGER),
+  ramBytes: optionalInt(1, MAX_RAM_BYTES, 'must be a whole byte count up to 4 TiB — check the units'),
+  hdBytes: optionalInt(0, MAX_HD_BYTES, 'must be a whole byte count up to 100 TB — check the units'),
   batteryHealth: optionalInt(0, 100),
   batteryCycles: optionalInt(0, 100_000),
   physicalIssues: optionalText,

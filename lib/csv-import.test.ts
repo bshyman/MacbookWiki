@@ -1,6 +1,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { MAX_IMPORT_ROWS, normalizeCsv, parseBattery, parseBytes } from './csv-import.ts';
+import {
+  MAX_IMPORT_ROWS,
+  normalizeCsv,
+  parseBattery,
+  parseBytes,
+  repeatedSerials,
+} from './csv-import.ts';
 import { EXPORT_HEADERS, TEMPLATE_HEADERS, matchHeaders } from './csv-columns.ts';
 
 const HEAD = 'Serial,Identifier,Firmware Locked,OS Reset,Activation Lock,MDM Enrolled';
@@ -28,6 +34,11 @@ test('parseBytes reads units, raw bytes and unitless values', () => {
     ['—', 1000, null],
     ['potato', 1000, 'invalid'],
     ['16 QB', 1000, 'invalid'],
+    // Number('') is 0, so a separator-only cell used to read as "no drive".
+    [',', 1000, 'invalid'],
+    [',,', 1000, 'invalid'],
+    ['.', 1000, 'invalid'],
+    ['.,', 1000, 'invalid'],
   ];
   for (const [input, base, expected] of cases) {
     assert.equal(parseBytes(input, base), expected, `${input} @${base}`);
@@ -194,6 +205,62 @@ test('an unparseable file fails whole rather than per row', () => {
 test('a missing serial reads as required, not as a raw type error', () => {
   const result = normalizeCsv(`${HEAD}\n,"Mac15,6",n/a,yes,disabled,no`);
   assert.deepEqual(result.rows[0].issues, [{ field: 'Serial', message: 'Serial is required' }]);
+});
+
+test('a separator-only size cell is an error, not zero bytes', () => {
+  // hd_bytes allows 0, so this one would have committed "None" silently.
+  const [r] = normalizeCsv(`${HEAD},HD\nS1,"Mac15,6",no,yes,disabled,no,","`).rows;
+  assert.ok(r.issues.some((i) => i.field === 'HD' && /could not read a size/.test(i.message)));
+  assert.equal(r.hdBytes, null);
+  assert.equal(r.input, null);
+});
+
+test('an implausible size is rejected rather than written forever', () => {
+  // "512000" in a GB-shaped column parses as 512 TB. The row is permanent, so a
+  // size that can only be a unit mistake has to fail before the insert.
+  const [r] = normalizeCsv(`${HEAD},HD\nS1,"Mac15,6",no,yes,disabled,no,512000`).rows;
+  assert.ok(r.issues.some((i) => i.field === 'HD' && /check the units/.test(i.message)));
+  assert.equal(r.input, null);
+
+  const [ram] = normalizeCsv(`${HEAD},RAM\nS1,"Mac15,6",no,yes,disabled,no,8192`).rows;
+  assert.ok(ram.issues.some((i) => i.field === 'RAM' && /check the units/.test(i.message)));
+});
+
+test('real sizes still pass the sanity ceilings', () => {
+  const [r] = normalizeCsv(`${HEAD},RAM,HD\nS1,"Mac15,6",no,yes,disabled,no,192 GB,8 TB`).rows;
+  assert.deepEqual(r.issues, []);
+  assert.equal(r.ramBytes, 206158430208);
+  assert.equal(r.hdBytes, 8000000000000);
+});
+
+test('a serial repeated inside one file is flagged against its first use', () => {
+  // The ledger check only asks the database. Without this, a concatenated export
+  // or a copy-pasted row arrives pre-ticked and doubles the ledger permanently.
+  const body = [
+    'S1,"Mac15,6",no,yes,disabled,no',
+    'S2,"Mac15,6",no,yes,disabled,no',
+    'S1,"Mac15,6",no,yes,disabled,no',
+    'S1,"Mac15,6",no,yes,disabled,no',
+  ].join('\n');
+  const repeats = repeatedSerials(normalizeCsv(`${HEAD}\n${body}`).rows);
+  assert.deepEqual([...repeats], [
+    [4, 2],
+    [5, 2],
+  ]);
+});
+
+test('repeat detection skips blank serials and ignores invalid rows', () => {
+  // A blank serial is already a row error — collapsing them together would
+  // report every one of them as a duplicate of the first.
+  const body = [
+    ',"Mac15,6",no,yes,disabled,no',
+    ',"Mac15,6",no,yes,disabled,no',
+    // Invalid for other reasons, but its serial still counts as the first use.
+    'S9,"Mac15,6",no,yes,,no',
+    'S9,"Mac15,6",no,yes,disabled,no',
+  ].join('\n');
+  const repeats = repeatedSerials(normalizeCsv(`${HEAD}\n${body}`).rows);
+  assert.deepEqual([...repeats], [[5, 4]]);
 });
 
 test('parseBattery splits a combined health/cycles cell', () => {
