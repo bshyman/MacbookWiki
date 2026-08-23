@@ -69,15 +69,8 @@ export const TEMPLATE_HEADERS = EXPORT_HEADERS.filter(
     ].includes(h),
 );
 
-/** commitSchema makes these six mandatory, so a file without them has no usable row. */
-export const REQUIRED_FIELDS: readonly ImportField[] = [
-  'serial',
-  'identifier',
-  'firmwareLocked',
-  'osReset',
-  'activationLock',
-  'mdmEnrolled',
-];
+/** commitSchema only mandates the serial, so that's the one column a file must have. */
+export const REQUIRED_FIELDS: readonly ImportField[] = ['serial'];
 
 /** Strips punctuation and case so "Ingested By", "ingested_by" and "INGESTED-BY" all collapse. */
 export function normalizeHeader(h: string): string {
@@ -236,10 +229,12 @@ export function recordToCsvRow(r: IntakeRecord): string[] {
     text(r.cpu),
     text(r.physical_issues),
     text(r.functional_issues),
-    r.firmware_locked,
-    r.os_reset,
-    r.activation_lock,
-    r.mdm_enrolled,
+    // Em-dash, not '': the importer reads '—' back as "not provided", so an
+    // export → import round-trip keeps unrecorded locks unrecorded.
+    r.firmware_locked ?? '—',
+    r.os_reset ?? '—',
+    r.activation_lock ?? '—',
+    r.mdm_enrolled ?? '—',
     new Date(r.processed_at).toISOString(),
     text(r.ingested_by),
     r.blockers.join('; '),

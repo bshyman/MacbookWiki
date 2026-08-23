@@ -7,7 +7,7 @@ import { archive } from '@/app/(home)/records/actions';
 export interface ArchiveTarget {
   id: number;
   serial: string;
-  identifier: string;
+  identifier: string | null;
   name: string | null;
 }
 
@@ -75,7 +75,7 @@ export function ArchiveDialog({
             <div className="font-mono text-xs">{target.serial}</div>
             <div className="mt-1 text-fd-muted-foreground">
               {target.name ? `${target.name} · ` : ''}
-              {target.identifier}
+              {target.identifier ?? '—'}
             </div>
           </div>
 

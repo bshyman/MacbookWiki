@@ -242,14 +242,11 @@ export const STEPS: WizardStep[] = [
  */
 export const MAX_STEP = 10;
 
-export const REQUIRED_KEYS: (keyof DraftPayload)[] = [
-  'serial',
-  'identifier',
-  'firmwareLocked',
-  'osReset',
-  'activationLock',
-  'mdmEnrolled',
-];
+// Serial only. Half the bench is machines that won't boot — they can't produce
+// an identifier or lock readings, and requiring those kept them out of the
+// ledger entirely. Everything else commits as "not recorded" and gets the
+// locks-unverified blocker instead.
+export const REQUIRED_KEYS: (keyof DraftPayload)[] = ['serial'];
 
 export function missingRequired(payload: DraftPayload): (keyof DraftPayload)[] {
   return REQUIRED_KEYS.filter((k) => {

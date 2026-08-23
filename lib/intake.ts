@@ -11,7 +11,9 @@ import {
 export interface IntakeRecord {
   id: number;
   serial: string;
-  identifier: string;
+  // Everything below the serial is nullable: broken machines can't produce
+  // readings, and "not recorded" beats keeping them out of the ledger.
+  identifier: string | null;
   name: string | null;
   model: string | null;
   year: number | null;
@@ -22,10 +24,10 @@ export interface IntakeRecord {
   battery_cycles: number | null;
   physical_issues: string | null;
   functional_issues: string | null;
-  firmware_locked: string;
-  os_reset: string;
-  activation_lock: string;
-  mdm_enrolled: string;
+  firmware_locked: string | null;
+  os_reset: string | null;
+  activation_lock: string | null;
+  mdm_enrolled: string | null;
   blockers: string[];
   processed_at: Date;
   ingested_by: string;
@@ -316,18 +318,22 @@ export function unarchiveRecord(id: number) {
  * counting as a duplicate or you could never re-import a file after archiving
  * the bad version of it. Superseded rows drop out for the same reason — the
  * answer should be the record that's true now, not every version of it.
+ *
+ * Case-insensitive, keyed by uppercased serial: two ledger rows predate the
+ * uppercase-at-commit rule, and a case miss here silently doubles a machine.
  */
 export async function findSerials(serials: string[]): Promise<Map<string, number[]>> {
   const found = new Map<string, number[]>();
   if (serials.length === 0) return found;
   const rows = await query<{ id: number; serial: string }>(
-    `SELECT id, serial FROM intake_current WHERE serial = ANY($1::text[]) ORDER BY id`,
-    [serials],
+    `SELECT id, serial FROM intake_current WHERE upper(serial) = ANY($1::text[]) ORDER BY id`,
+    [serials.map((s) => s.toUpperCase())],
   );
   for (const r of rows) {
-    const list = found.get(r.serial);
+    const key = r.serial.toUpperCase();
+    const list = found.get(key);
     if (list) list.push(r.id);
-    else found.set(r.serial, [r.id]);
+    else found.set(key, [r.id]);
   }
   return found;
 }
@@ -344,10 +350,22 @@ export function successorOf(id: number) {
   return queryOne<IntakeRecord>(`SELECT * FROM intake_records WHERE supersedes_id = $1`, [id]);
 }
 
-/** Has this machine been through intake before? */
+/** Has this machine been through intake before? Case-insensitive — see findSerials. */
 export function historyForSerial(serial: string) {
   return query<IntakeRecord>(
-    `SELECT * FROM intake_records WHERE serial = $1 ORDER BY id DESC`,
+    `SELECT * FROM intake_records WHERE upper(serial) = upper($1) ORDER BY id DESC`,
     [serial],
   );
+}
+
+/**
+ * How much bench work is sitting outside the ledger. The records page shows
+ * this so a finished-looking draft can't quietly stand in for a committed
+ * record — that gap once grew to 31 machines before anyone saw it.
+ */
+export async function draftsSummary(): Promise<{ count: number; oldest: Date | null }> {
+  const row = await queryOne<{ count: number; oldest: Date | null }>(
+    `SELECT count(*)::int AS count, min(updated_at) AS oldest FROM intake_drafts`,
+  );
+  return row ?? { count: 0, oldest: null };
 }

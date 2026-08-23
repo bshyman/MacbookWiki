@@ -2,7 +2,7 @@ import Link from 'next/link';
 import type { Metadata } from 'next';
 import { RecordsTable, type RecordRow } from '@/components/records-table';
 import { formatBytes } from '@/lib/format';
-import { RECORDS_LIMIT, countAllRecords, listAllRecords } from '@/lib/intake';
+import { RECORDS_LIMIT, countAllRecords, draftsSummary, listAllRecords } from '@/lib/intake';
 import { requireSession } from '@/lib/session';
 
 export const dynamic = 'force-dynamic';
@@ -22,7 +22,11 @@ export default async function RecordsPage(props: PageProps<'/records'>) {
   const committedId = positiveInt(committed);
   const importedCount = positiveInt(imported);
 
-  const [records, total] = await Promise.all([listAllRecords(), countAllRecords()]);
+  const [records, total, drafts] = await Promise.all([
+    listAllRecords(),
+    countAllRecords(),
+    draftsSummary(),
+  ]);
   const supersededIds = new Set(records.map((r) => r.supersedes_id).filter(Boolean));
 
   // Flatten here so the client component never sees a Date. Timestamps render in
@@ -87,6 +91,23 @@ export default async function RecordsPage(props: PageProps<'/records'>) {
           </Link>
         </div>
       </div>
+
+      {/* Bench-complete is not ledger-complete — 31 machines once sat here
+          invisibly. Keep the gap on the page people actually search. */}
+      {drafts.count > 0 && (
+        <p className="mt-4 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-700 dark:text-amber-400">
+          {drafts.count.toLocaleString()} intake draft{drafts.count === 1 ? ' is' : 's are'} not
+          in the ledger yet
+          {drafts.oldest && (
+            <> — oldest untouched since {drafts.oldest.toISOString().slice(0, 10)}</>
+          )}
+          . Serial searches here will not find those machines until they are committed.{' '}
+          <Link href="/intake" className="underline underline-offset-2">
+            Finish them in Intake
+          </Link>
+          .
+        </p>
+      )}
 
       {committedId !== null && (
         <p className="mt-4 rounded-lg border border-fd-primary/40 bg-fd-primary/10 px-3 py-2 text-sm">

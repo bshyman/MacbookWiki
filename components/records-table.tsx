@@ -16,7 +16,7 @@ import { BLOCKER_BADGES } from '@/lib/intake-schema';
 export interface RecordRow {
   id: number;
   serial: string;
-  identifier: string;
+  identifier: string | null;
   name: string | null;
   model: string | null;
   cpu: string | null;
@@ -158,7 +158,7 @@ export function RecordsTable({
   }, [f, loaded]);
 
   const identifiers = useMemo(
-    () => [...new Set(rows.map((r) => r.identifier))].sort(),
+    () => [...new Set(rows.map((r) => r.identifier).filter((x): x is string => x !== null))].sort(),
     [rows],
   );
   const operators = useMemo(() => [...new Set(rows.map((r) => r.ingestedBy))].sort(), [rows]);
@@ -443,7 +443,11 @@ export function RecordsTable({
                   <Highlight text={r.serial} needle={needle} />
                 </td>
                 <td className="whitespace-nowrap px-3 py-2.5 font-mono text-xs">
-                  <Highlight text={r.identifier} needle={needle || f.ident.toLowerCase()} />
+                  {r.identifier ? (
+                    <Highlight text={r.identifier} needle={needle || f.ident.toLowerCase()} />
+                  ) : (
+                    '—'
+                  )}
                 </td>
                 <td className="whitespace-nowrap px-3 py-2.5">
                   {r.model ? <Highlight text={r.model} needle={needle} /> : '—'}

@@ -69,10 +69,23 @@ test('header aliases are case and punctuation insensitive', () => {
   ]);
 });
 
-test('a missing required column rejects the whole file', () => {
-  const result = normalizeCsv('Serial,Identifier\nX,Y');
-  assert.match(result.fatal ?? '', /Missing required columns: Firmware Locked, OS Reset/);
+test('a file without a Serial column is rejected whole', () => {
+  const result = normalizeCsv('Identifier,Name\n"Mac15,6",Test');
+  assert.match(result.fatal ?? '', /Missing required column: Serial/);
   assert.deepEqual(result.rows, []);
+});
+
+test('serial is the only required column', () => {
+  const result = normalizeCsv('Serial\nABC123XYZ');
+  assert.equal(result.fatal, null);
+  assert.deepEqual(result.rows[0].issues, []);
+  assert.equal(result.rows[0].input?.serial, 'ABC123XYZ');
+});
+
+test('serials are uppercased so case typos cannot dodge duplicate checks', () => {
+  const result = normalizeCsv('Serial\nc02fm5rhq6l7');
+  assert.equal(result.rows[0].serial, 'C02FM5RHQ6L7');
+  assert.equal(result.rows[0].input?.serial, 'C02FM5RHQ6L7');
 });
 
 test('two columns mapping to one field reject the whole file', () => {
@@ -118,10 +131,18 @@ test('n/a is a real Firmware Locked value, not a blank', () => {
   assert.equal(result.rows[0].input?.firmwareLocked, 'n/a');
 });
 
-test('a blank required enum is an error, never a default', () => {
+test('a blank lock cell lands as not-recorded, never as a default', () => {
   const result = normalizeCsv(`${HEAD}\nS1,"Mac15,6",n/a,yes,,no`);
+  assert.deepEqual(result.rows[0].issues, []);
+  // Absent, not defaulted — commit stores NULL and derives locks-unverified.
+  assert.equal(result.rows[0].input?.activationLock, undefined);
+  assert.equal(result.rows[0].input?.osReset, 'yes');
+});
+
+test('a provided lock value must still be a real one', () => {
+  const result = normalizeCsv(`${HEAD}\nS1,"Mac15,6",n/a,yes,potato,no`);
   assert.deepEqual(result.rows[0].issues, [
-    { field: 'Activation Lock', message: 'required — one of enabled, disabled, unsupported, unknown' },
+    { field: 'Activation Lock', message: '"potato" isn\'t one of enabled, disabled, unsupported, unknown' },
   ]);
   assert.equal(result.rows[0].input, null);
 });
@@ -177,7 +198,7 @@ test('a ragged row is flagged and never silently padded', () => {
 });
 
 test('bad rows do not sink the good ones', () => {
-  const text = `${HEAD}\n${'S1,"Mac15,6",no,yes,disabled,no'}\nS2,"Mac15,6",no,yes,,no`;
+  const text = `${HEAD}\n${'S1,"Mac15,6",no,yes,disabled,no'}\nS2,"Mac15,6",no,yes,potato,no`;
   const result = normalizeCsv(text);
   assert.equal(result.rows.filter((r) => r.input).length, 1);
   assert.equal(result.rows.filter((r) => r.issues.length).length, 1);
@@ -256,7 +277,7 @@ test('repeat detection skips blank serials and ignores invalid rows', () => {
     ',"Mac15,6",no,yes,disabled,no',
     ',"Mac15,6",no,yes,disabled,no',
     // Invalid for other reasons, but its serial still counts as the first use.
-    'S9,"Mac15,6",no,yes,,no',
+    'S9,"Mac15,6",no,yes,potato,no',
     'S9,"Mac15,6",no,yes,disabled,no',
   ].join('\n');
   const repeats = repeatedSerials(normalizeCsv(`${HEAD}\n${body}`).rows);
