@@ -88,7 +88,12 @@ export function parseBytes(raw: string, base: 1024 | 1000): number | null | 'inv
   const m = /^([\d.,]+)\s*(b|kib?|kb|mib?|mb|gib?|gb|tib?|tb)?$/i.exec(v);
   if (!m) return 'invalid';
 
-  const n = Number(m[1].replaceAll(',', ''));
+  // A mantissa of nothing but separators ("," or ",,") makes Number('') zero,
+  // which would record a real "no drive" reading out of a mangled cell.
+  const mantissa = m[1].replaceAll(',', '');
+  if (!/\d/.test(mantissa)) return 'invalid';
+
+  const n = Number(mantissa);
   if (!Number.isFinite(n) || n < 0) return 'invalid';
 
   const unit = m[2]?.toLowerCase();
@@ -211,6 +216,28 @@ export function normalizeCsv(text: string): ParsedImport {
   };
 }
 
+/**
+ * Rows that repeat a serial already used earlier in the same file, mapped to the
+ * line that used it first. The ledger check only asks the database, so without
+ * this a file that repeats itself — a concatenated export, a copy-pasted row —
+ * sails past the duplicate guard with every copy pre-ticked.
+ *
+ * Serials arrive here already uppercased by normalizeRow, matching the
+ * case-insensitive findSerials lookup. Blank serials are already a row error,
+ * so they're skipped rather than collapsed together.
+ */
+export function repeatedSerials(rows: readonly NormalizedRow[]): Map<number, number> {
+  const firstSeen = new Map<string, number>();
+  const repeats = new Map<number, number>();
+  for (const r of rows) {
+    if (r.serial === '') continue;
+    const seen = firstSeen.get(r.serial);
+    if (seen === undefined) firstSeen.set(r.serial, r.line);
+    else repeats.set(r.line, seen);
+  }
+  return repeats;
+}
+
 function normalizeRow(
   cells: string[],
   map: Map<number, ImportField>,
@@ -240,8 +267,10 @@ function normalizeRow(
 
   // Empty string rather than undefined so a missing cell trips commitSchema's
   // "Serial is required" instead of Zod's raw "expected string, received undefined".
-  input.serial = take('serial') ?? '';
-  input.identifier = take('identifier') ?? '';
+  // Uppercased here as well as in commitSchema, so duplicate detection (both the
+  // in-file repeat check and the findSerials lookup) can't miss on case.
+  input.serial = (take('serial') ?? '').toUpperCase();
+  input.identifier = take('identifier');
   input.name = take('name');
   input.model = take('model');
   input.cpu = take('cpu');
@@ -284,15 +313,9 @@ function normalizeRow(
   for (const key of ['firmwareLocked', 'osReset', 'activationLock', 'mdmEnrolled'] as const) {
     const value = takeStrict(key);
     const { table, allowed } = ENUMS[key];
-    if (value === undefined) {
-      // No defaults here. These rows are permanent, and guessing "no" for a
-      // blank Activation Lock writes a claim nobody can falsify later.
-      issues.push({
-        field: FIELD_LABELS[key],
-        message: `required — one of ${allowed.join(', ')}`,
-      });
-      continue;
-    }
+    // Blank commits as "not recorded" and draws the locks-unverified blocker —
+    // still no defaults: a value that IS provided must be a real one.
+    if (value === undefined) continue;
     const canonical = synonym(value, table as Record<string, string>, allowed as readonly string[]);
     if (canonical === null) {
       issues.push({

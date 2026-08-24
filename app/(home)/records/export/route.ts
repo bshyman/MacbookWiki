@@ -46,7 +46,7 @@ function csvStream(filename: string, nextPage: () => Promise<IntakeRecord[] | nu
   });
 }
 
-/** Whole ledger. */
+/** Whole ledger, archived rows excluded. Tick them in the table to export those. */
 export async function GET() {
   // proxy.ts already gates /records/*, but middleware alone isn't trusted here —
   // same reasoning as every page (see lib/session.ts).

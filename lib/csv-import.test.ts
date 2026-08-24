@@ -1,6 +1,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { MAX_IMPORT_ROWS, normalizeCsv, parseBattery, parseBytes } from './csv-import.ts';
+import {
+  MAX_IMPORT_ROWS,
+  normalizeCsv,
+  parseBattery,
+  parseBytes,
+  repeatedSerials,
+} from './csv-import.ts';
 import { EXPORT_HEADERS, TEMPLATE_HEADERS, matchHeaders } from './csv-columns.ts';
 
 const HEAD = 'Serial,Identifier,Firmware Locked,OS Reset,Activation Lock,MDM Enrolled';
@@ -28,6 +34,11 @@ test('parseBytes reads units, raw bytes and unitless values', () => {
     ['—', 1000, null],
     ['potato', 1000, 'invalid'],
     ['16 QB', 1000, 'invalid'],
+    // Number('') is 0, so a separator-only cell used to read as "no drive".
+    [',', 1000, 'invalid'],
+    [',,', 1000, 'invalid'],
+    ['.', 1000, 'invalid'],
+    ['.,', 1000, 'invalid'],
   ];
   for (const [input, base, expected] of cases) {
     assert.equal(parseBytes(input, base), expected, `${input} @${base}`);
@@ -58,10 +69,23 @@ test('header aliases are case and punctuation insensitive', () => {
   ]);
 });
 
-test('a missing required column rejects the whole file', () => {
-  const result = normalizeCsv('Serial,Identifier\nX,Y');
-  assert.match(result.fatal ?? '', /Missing required columns: Firmware Locked, OS Reset/);
+test('a file without a Serial column is rejected whole', () => {
+  const result = normalizeCsv('Identifier,Name\n"Mac15,6",Test');
+  assert.match(result.fatal ?? '', /Missing required column: Serial/);
   assert.deepEqual(result.rows, []);
+});
+
+test('serial is the only required column', () => {
+  const result = normalizeCsv('Serial\nABC123XYZ');
+  assert.equal(result.fatal, null);
+  assert.deepEqual(result.rows[0].issues, []);
+  assert.equal(result.rows[0].input?.serial, 'ABC123XYZ');
+});
+
+test('serials are uppercased so case typos cannot dodge duplicate checks', () => {
+  const result = normalizeCsv('Serial\nc02fm5rhq6l7');
+  assert.equal(result.rows[0].serial, 'C02FM5RHQ6L7');
+  assert.equal(result.rows[0].input?.serial, 'C02FM5RHQ6L7');
 });
 
 test('two columns mapping to one field reject the whole file', () => {
@@ -107,10 +131,18 @@ test('n/a is a real Firmware Locked value, not a blank', () => {
   assert.equal(result.rows[0].input?.firmwareLocked, 'n/a');
 });
 
-test('a blank required enum is an error, never a default', () => {
+test('a blank lock cell lands as not-recorded, never as a default', () => {
   const result = normalizeCsv(`${HEAD}\nS1,"Mac15,6",n/a,yes,,no`);
+  assert.deepEqual(result.rows[0].issues, []);
+  // Absent, not defaulted — commit stores NULL and derives locks-unverified.
+  assert.equal(result.rows[0].input?.activationLock, undefined);
+  assert.equal(result.rows[0].input?.osReset, 'yes');
+});
+
+test('a provided lock value must still be a real one', () => {
+  const result = normalizeCsv(`${HEAD}\nS1,"Mac15,6",n/a,yes,potato,no`);
   assert.deepEqual(result.rows[0].issues, [
-    { field: 'Activation Lock', message: 'required — one of enabled, disabled, unsupported, unknown' },
+    { field: 'Activation Lock', message: '"potato" isn\'t one of enabled, disabled, unsupported, unknown' },
   ]);
   assert.equal(result.rows[0].input, null);
 });
@@ -166,7 +198,7 @@ test('a ragged row is flagged and never silently padded', () => {
 });
 
 test('bad rows do not sink the good ones', () => {
-  const text = `${HEAD}\n${'S1,"Mac15,6",no,yes,disabled,no'}\nS2,"Mac15,6",no,yes,,no`;
+  const text = `${HEAD}\n${'S1,"Mac15,6",no,yes,disabled,no'}\nS2,"Mac15,6",no,yes,potato,no`;
   const result = normalizeCsv(text);
   assert.equal(result.rows.filter((r) => r.input).length, 1);
   assert.equal(result.rows.filter((r) => r.issues.length).length, 1);
@@ -194,6 +226,62 @@ test('an unparseable file fails whole rather than per row', () => {
 test('a missing serial reads as required, not as a raw type error', () => {
   const result = normalizeCsv(`${HEAD}\n,"Mac15,6",n/a,yes,disabled,no`);
   assert.deepEqual(result.rows[0].issues, [{ field: 'Serial', message: 'Serial is required' }]);
+});
+
+test('a separator-only size cell is an error, not zero bytes', () => {
+  // hd_bytes allows 0, so this one would have committed "None" silently.
+  const [r] = normalizeCsv(`${HEAD},HD\nS1,"Mac15,6",no,yes,disabled,no,","`).rows;
+  assert.ok(r.issues.some((i) => i.field === 'HD' && /could not read a size/.test(i.message)));
+  assert.equal(r.hdBytes, null);
+  assert.equal(r.input, null);
+});
+
+test('an implausible size is rejected rather than written forever', () => {
+  // "512000" in a GB-shaped column parses as 512 TB. The row is permanent, so a
+  // size that can only be a unit mistake has to fail before the insert.
+  const [r] = normalizeCsv(`${HEAD},HD\nS1,"Mac15,6",no,yes,disabled,no,512000`).rows;
+  assert.ok(r.issues.some((i) => i.field === 'HD' && /check the units/.test(i.message)));
+  assert.equal(r.input, null);
+
+  const [ram] = normalizeCsv(`${HEAD},RAM\nS1,"Mac15,6",no,yes,disabled,no,8192`).rows;
+  assert.ok(ram.issues.some((i) => i.field === 'RAM' && /check the units/.test(i.message)));
+});
+
+test('real sizes still pass the sanity ceilings', () => {
+  const [r] = normalizeCsv(`${HEAD},RAM,HD\nS1,"Mac15,6",no,yes,disabled,no,192 GB,8 TB`).rows;
+  assert.deepEqual(r.issues, []);
+  assert.equal(r.ramBytes, 206158430208);
+  assert.equal(r.hdBytes, 8000000000000);
+});
+
+test('a serial repeated inside one file is flagged against its first use', () => {
+  // The ledger check only asks the database. Without this, a concatenated export
+  // or a copy-pasted row arrives pre-ticked and doubles the ledger permanently.
+  const body = [
+    'S1,"Mac15,6",no,yes,disabled,no',
+    'S2,"Mac15,6",no,yes,disabled,no',
+    'S1,"Mac15,6",no,yes,disabled,no',
+    'S1,"Mac15,6",no,yes,disabled,no',
+  ].join('\n');
+  const repeats = repeatedSerials(normalizeCsv(`${HEAD}\n${body}`).rows);
+  assert.deepEqual([...repeats], [
+    [4, 2],
+    [5, 2],
+  ]);
+});
+
+test('repeat detection skips blank serials and ignores invalid rows', () => {
+  // A blank serial is already a row error — collapsing them together would
+  // report every one of them as a duplicate of the first.
+  const body = [
+    ',"Mac15,6",no,yes,disabled,no',
+    ',"Mac15,6",no,yes,disabled,no',
+    // Invalid for other reasons, but its serial still counts as the first use.
+    'S9,"Mac15,6",no,yes,potato,no',
+    'S9,"Mac15,6",no,yes,disabled,no',
+  ].join('\n');
+  const repeats = repeatedSerials(normalizeCsv(`${HEAD}\n${body}`).rows);
+  assert.deepEqual([...repeats], [[5, 4]]);
 });
 
 test('parseBattery splits a combined health/cycles cell', () => {

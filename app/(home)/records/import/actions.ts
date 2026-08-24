@@ -3,7 +3,7 @@
 import { createHash } from 'node:crypto';
 import { revalidatePath } from 'next/cache';
 import { messageFor } from '@/lib/action-errors';
-import { MAX_IMPORT_ROWS, normalizeCsv, type RowIssue } from '@/lib/csv-import';
+import { MAX_IMPORT_ROWS, normalizeCsv, repeatedSerials, type RowIssue } from '@/lib/csv-import';
 import type { ImportField } from '@/lib/csv-columns';
 import { bulkCommitIntake, findSerials } from '@/lib/intake';
 import { requireSession } from '@/lib/session';
@@ -16,6 +16,8 @@ export interface PreviewRow {
   issues: RowIssue[];
   /** Existing record ids with this serial. Non-empty means it's already in the ledger. */
   duplicateOf: number[];
+  /** Earlier line in this same file carrying the same serial, if any. */
+  repeatOfLine: number | null;
 }
 
 export type PreviewResult =
@@ -44,6 +46,11 @@ export async function previewImport(csvText: string): Promise<PreviewResult> {
     return { ok: false, error: messageFor(err) };
   }
 
+  // A serial can be a duplicate two ways: already in the ledger, or repeated
+  // earlier in this same file. Both land unticked — the database check alone
+  // waves through a file that repeats itself.
+  const repeats = repeatedSerials(parsed.rows);
+
   const rows: PreviewRow[] = parsed.rows.map((r) => ({
     line: r.line,
     cells: r.cells,
@@ -51,6 +58,7 @@ export async function previewImport(csvText: string): Promise<PreviewResult> {
     hdBytes: r.hdBytes,
     issues: r.issues,
     duplicateOf: existing.get(r.serial) ?? [],
+    repeatOfLine: repeats.get(r.line) ?? null,
   }));
 
   return {
@@ -60,7 +68,7 @@ export async function previewImport(csvText: string): Promise<PreviewResult> {
     ignoredHeaders: parsed.ignoredHeaders,
     rows,
     validCount: rows.filter((r) => r.issues.length === 0).length,
-    duplicateCount: rows.filter((r) => r.duplicateOf.length > 0).length,
+    duplicateCount: rows.filter((r) => r.duplicateOf.length > 0 || r.repeatOfLine !== null).length,
   };
 }
 

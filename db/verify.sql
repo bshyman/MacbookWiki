@@ -93,6 +93,9 @@ SELECT serial, identifier, name, model, year, cpu, ram_bytes, hd_bytes,
 FROM intake_records WHERE id = :original_id
 RETURNING id, battery_health AS health, supersedes_id, correction_note;
 
+SELECT id AS correction_id
+FROM intake_records WHERE supersedes_id = :original_id \gset
+
 \echo ''
 \echo '--- correction without a note (expect: DENIED by check constraint) ---'
 INSERT INTO intake_records
@@ -108,13 +111,42 @@ VALUES (:serial, 'Mac15,6', 'n/a', 'yes', 'disabled', 'no', 'verify.sql',
         :original_id, 'branching attempt');
 
 \echo ''
-\echo '--- ledger keeps both rows (expect: 2 for this run) ---'
-SELECT count(*) AS rows_for_this_serial FROM intake_records WHERE serial = :serial;
+\echo '--- ledger keeps both rows (expect: 2) ---'
+SELECT count(*) AS rows_from_this_run
+FROM intake_records WHERE id IN (:original_id, :correction_id);
 
 \echo ''
 \echo '--- the original is superseded, the correction is current (expect: 1 row, health 88) ---'
 SELECT id, serial, battery_health AS health, correction_note
-FROM intake_current WHERE serial = :serial;
+FROM intake_current WHERE id IN (:original_id, :correction_id);
+
+\echo ''
+\echo '--- archive the correction (expect: SUCCESS, ledger untouched) ---'
+INSERT INTO intake_archived (record_id, archived_by, reason)
+VALUES (:correction_id, 'verify.sql', 'archive path check')
+RETURNING record_id, archived_by;
+
+\echo ''
+\echo '--- archiving removed nothing from the ledger (expect: still 2) ---'
+SELECT count(*) AS rows_from_this_run
+FROM intake_records WHERE id IN (:original_id, :correction_id);
+
+\echo ''
+\echo '--- archived head hides the whole chain (expect: 0 rows) ---'
+-- The original stays superseded because its successor still exists — archiving
+-- marks, it does not remove, so nothing underneath resurfaces.
+SELECT id, battery_health AS health
+FROM intake_current WHERE id IN (:original_id, :correction_id);
+
+\echo ''
+\echo '--- restore drops only the marker (expect: 1 row, health 88) ---'
+DELETE FROM intake_archived WHERE record_id = :correction_id RETURNING record_id;
+SELECT id, battery_health AS health
+FROM intake_current WHERE id IN (:original_id, :correction_id);
+
+\echo ''
+\echo '--- archiving still cannot reach intake_records (expect: DENIED) ---'
+DELETE FROM intake_records WHERE id = :correction_id;
 
 \echo ''
 \echo '--- drafts remain fully mutable (expect: SUCCESS) ---'

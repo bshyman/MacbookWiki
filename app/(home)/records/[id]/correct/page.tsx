@@ -16,7 +16,7 @@ function toPayload(r: Awaited<ReturnType<typeof getRecord>>): DraftPayload {
   const str = (v: unknown) => (v === null || v === undefined ? '' : String(v));
   return {
     serial: r.serial,
-    identifier: r.identifier,
+    identifier: str(r.identifier),
     name: str(r.name),
     model: str(r.model),
     year: str(r.year),

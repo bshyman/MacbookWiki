@@ -258,11 +258,17 @@ export function IntakeWizard({
             </button>
           )}
 
-          {isLast && missing.length > 0 && (
-            <span className="text-xs text-fd-muted-foreground">
-              {missing.length} required field{missing.length === 1 ? '' : 's'} still blank
-            </span>
-          )}
+          {isLast &&
+            (missing.length > 0 ? (
+              <span className="text-xs text-red-500">
+                Serial is required — it&rsquo;s the one value every machine has, even dead ones
+              </span>
+            ) : (
+              <span className="text-xs text-fd-muted-foreground">
+                Draft only until committed — blank fields are recorded as &ldquo;not
+                checked&rdquo;
+              </span>
+            ))}
         </div>
       </div>
     </div>
@@ -327,11 +333,13 @@ function ProgressRail({
   );
 }
 
+// Every state names the draft. "Synced" alone read as "done" — operators marked
+// machines complete off this badge while the record was never committed.
 function SaveBadge({ state }: { state: SaveState }) {
-  if (state === 'idle') return <span className="text-fd-muted-foreground">Saved locally</span>;
-  if (state === 'saving') return <span>Saving…</span>;
-  if (state === 'saved') return <span className="text-fd-primary">Synced</span>;
-  return <span className="text-red-500">Sync failed — kept locally</span>;
+  if (state === 'idle') return <span className="text-fd-muted-foreground">Draft saved locally</span>;
+  if (state === 'saving') return <span>Saving draft…</span>;
+  if (state === 'saved') return <span className="text-fd-primary">Draft synced — not committed</span>;
+  return <span className="text-red-500">Sync failed — draft kept locally</span>;
 }
 
 function CommandRow({ code, note }: { code: string; note: string }) {
@@ -449,8 +457,6 @@ const REVIEW_ROWS: { key: keyof DraftPayload; label: string }[] = [
   { key: 'functionalIssues', label: 'Functional Issues' },
   { key: 'firmwareLocked', label: 'Firmware Locked' },
   { key: 'osReset', label: 'OS Reset' },
-  // Both required. Leaving them off meant "2 required fields still blank" with
-  // nothing on screen to show which two.
   { key: 'activationLock', label: 'Activation Lock' },
   { key: 'mdmEnrolled', label: 'MDM / DEP' },
 ];

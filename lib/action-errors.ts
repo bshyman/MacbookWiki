@@ -16,6 +16,8 @@ export function messageFor(err: unknown): string {
     // A correction already exists for this record — the chain stays linear.
     if (code === '23505') return 'That record already has a correction.';
     if (code === '23514') return 'A value failed a database constraint.';
+    // Archiving an id that isn't in the ledger — stale page, or a hand-made request.
+    if (code === '23503') return 'That record no longer exists.';
     // Raised by the append-only triggers.
     if (code === '23001') return 'Committed records cannot be modified.';
   }

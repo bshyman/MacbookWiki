@@ -24,7 +24,7 @@ const optionalText = z
     return t === '' ? null : t;
   });
 
-const optionalInt = (min: number, max: number) =>
+const optionalInt = (min: number, max: number, message?: string) =>
   z
     .union([z.string(), z.number()])
     .nullish()
@@ -39,8 +39,16 @@ const optionalInt = (min: number, max: number) =>
     // battery reading has to fail here with a field error, not as a 22P02 at
     // commit after the operator filled in everything else.
     .refine((v) => v === null || (Number.isInteger(v) && v >= min && v <= max), {
-      message: `must be a whole number between ${min} and ${max}`,
+      message: message ?? `must be a whole number between ${min} and ${max}`,
     });
+
+/**
+ * Sanity ceilings, not spec limits. A unitless "512000" in an HD column parses as
+ * 512 TB, and the row is permanent — so a size that can only be a unit mistake
+ * fails here instead of getting written. Both sit far above any Mac that ships.
+ */
+export const MAX_RAM_BYTES = 4 * 1024 ** 4; // 4 TiB
+export const MAX_HD_BYTES = 100 * 1000 ** 4; // 100 TB
 
 /** What the wizard holds mid-flight — everything optional, nothing trusted yet. */
 export const draftPayloadSchema = z
@@ -67,24 +75,53 @@ export const draftPayloadSchema = z
 
 export type DraftPayload = z.infer<typeof draftPayloadSchema>;
 
-/** The commit boundary. Anything past here is going into an immutable row. */
+/**
+ * Enum fields where blank means "not recorded" — a real state for a machine that
+ * won't boot. Distinct from the enums' own 'unknown' values, which mean "checked
+ * and couldn't determine". Both feed the locks-unverified blocker.
+ */
+const optionalEnum = <T extends readonly [string, ...string[]]>(values: T) =>
+  z.preprocess(
+    // '' comes from a wizard select left on (or reset to) "Select…" — that's an
+    // absence, not an invalid value.
+    (v) => (typeof v === 'string' && v.trim() === '' ? null : v),
+    z
+      .enum(values)
+      .nullish()
+      .transform((v) => v ?? null),
+  );
+
+/**
+ * The commit boundary. Anything past here is going into an immutable row.
+ *
+ * Only the serial is required: it's the one value every machine carries on the
+ * chassis, booting or not. Everything else records as NULL when absent —
+ * an honest "not checked" beats a wall that keeps broken machines out of the
+ * ledger entirely (they used to strand as drafts and vanish from every lookup).
+ */
 export const commitSchema = z.object({
-  serial: z.string().trim().min(1, 'Serial is required'),
-  identifier: z.string().trim().min(1, 'Identifier is required'),
+  // Uppercased so lookups and duplicate checks can't miss on a case typo — a
+  // hand-typed lowercase 'l' has already burned us (record #2).
+  serial: z
+    .string()
+    .trim()
+    .min(1, 'Serial is required')
+    .transform((v) => v.toUpperCase()),
+  identifier: optionalText,
   name: optionalText,
   model: optionalText,
   year: optionalInt(2006, 2100),
   cpu: optionalText,
-  ramBytes: optionalInt(1, Number.MAX_SAFE_INTEGER),
-  hdBytes: optionalInt(0, Number.MAX_SAFE_INTEGER),
+  ramBytes: optionalInt(1, MAX_RAM_BYTES, 'must be a whole byte count up to 4 TiB — check the units'),
+  hdBytes: optionalInt(0, MAX_HD_BYTES, 'must be a whole byte count up to 100 TB — check the units'),
   batteryHealth: optionalInt(0, 100),
   batteryCycles: optionalInt(0, 100_000),
   physicalIssues: optionalText,
   functionalIssues: optionalText,
-  firmwareLocked: z.enum(FIRMWARE_LOCKED),
-  osReset: z.enum(OS_RESET),
-  activationLock: z.enum(ACTIVATION_LOCK),
-  mdmEnrolled: z.enum(MDM_ENROLLED),
+  firmwareLocked: optionalEnum(FIRMWARE_LOCKED),
+  osReset: optionalEnum(OS_RESET),
+  activationLock: optionalEnum(ACTIVATION_LOCK),
+  mdmEnrolled: optionalEnum(MDM_ENROLLED),
   ingestedBy: z.string().trim().min(1, 'Ingested By is required'),
 });
 
@@ -102,6 +139,7 @@ export const BLOCKER_LABELS: Record<string, string> = {
   'mdm-enrolled': 'Enrolled via DEP/MDM',
   'firmware-locked': 'Firmware password not cleared',
   'smart-failing': 'Functional issues mention a failing drive',
+  'locks-unverified': 'Lock status not verified — check before resale',
 };
 
 /** Same slugs, short enough for a table badge. Lives here so only one file knows the slugs. */
@@ -110,6 +148,7 @@ export const BLOCKER_BADGES: Record<string, string> = {
   'mdm-enrolled': 'DEP/MDM',
   'firmware-locked': 'Firmware',
   'smart-failing': 'SMART failing',
+  'locks-unverified': 'Locks unverified',
 };
 
 /**
@@ -127,5 +166,14 @@ export function deriveBlockers(v: {
   if (v.mdmEnrolled === 'yes') blockers.push('mdm-enrolled');
   if (v.firmwareLocked === 'yes') blockers.push('firmware-locked');
   if (/\bfailing\b/i.test(v.functionalIssues ?? '')) blockers.push('smart-failing');
+  // Absent ("not recorded") or explicit 'unknown' both mean nobody has verified
+  // the machine is unlocked — it can't be sold on a guess either way. '' is a
+  // draft payload's spelling of absent, and this also runs on drafts (the
+  // review preview), so it counts too.
+  const unverified = (lock: string | null | undefined) =>
+    lock == null || lock === '' || lock === 'unknown';
+  if (unverified(v.activationLock) || unverified(v.mdmEnrolled) || unverified(v.firmwareLocked)) {
+    blockers.push('locks-unverified');
+  }
   return blockers;
 }

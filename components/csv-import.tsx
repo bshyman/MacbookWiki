@@ -31,6 +31,9 @@ const PREVIEW_COLUMNS: ImportField[] = [
   'mdmEnrolled',
 ];
 
+/** Ledger hit or in-file repeat — both start unticked, so they read the same. */
+const isDuplicate = (r: PreviewRow) => r.duplicateOf.length > 0 || r.repeatOfLine !== null;
+
 const errorBox =
   'rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-600 dark:text-red-400';
 const warnBox =
@@ -97,7 +100,7 @@ export function CsvImport() {
       setIncluded(
         new Set(
           result.rows
-            .filter((r) => r.issues.length === 0 && r.duplicateOf.length === 0)
+            .filter((r) => r.issues.length === 0 && !isDuplicate(r))
             .map((r) => r.line),
         ),
       );
@@ -137,7 +140,7 @@ export function CsvImport() {
     setIncluded((prev) => {
       const next = new Set(prev);
       for (const r of goodRows) {
-        if (r.duplicateOf.length === 0) continue;
+        if (!isDuplicate(r)) continue;
         if (on) next.add(r.line);
         else next.delete(r.line);
       }
@@ -206,8 +209,9 @@ export function CsvImport() {
       {preview.duplicateCount > 0 && (
         <div className={`${warnBox} flex flex-wrap items-center justify-between gap-3`}>
           <span>
-            {preview.duplicateCount.toLocaleString()} of {total.toLocaleString()} rows have a serial
-            that is already in the ledger. They start excluded — records can never be deleted.
+            {preview.duplicateCount.toLocaleString()} of {total.toLocaleString()} rows repeat a
+            serial — already live in the ledger, or used earlier in this same file. They start
+            excluded — a committed record can be archived, but never removed.
           </span>
           <span className="flex gap-3 whitespace-nowrap">
             <button type="button" onClick={() => setAllDuplicates(true)} className="underline underline-offset-2">
@@ -313,7 +317,7 @@ function RowTable({
         <tbody>
           {rows.map((r) => {
             const broken = r.issues.length > 0;
-            const noted = broken || r.duplicateOf.length > 0;
+            const noted = broken || isDuplicate(r);
             return (
               <Fragment key={r.line}>
                 <tr className={`align-top ${noted ? '' : 'border-b border-fd-border/60'}`}>
@@ -357,6 +361,12 @@ function RowTable({
                         <span className="text-amber-700 dark:text-amber-400">
                           {broken && ' · '}
                           already in the ledger as {r.duplicateOf.map((id) => `#${id}`).join(', ')}
+                        </span>
+                      )}
+                      {r.repeatOfLine !== null && (
+                        <span className="text-amber-700 dark:text-amber-400">
+                          {(broken || r.duplicateOf.length > 0) && ' · '}
+                          same serial as line {r.repeatOfLine} of this file
                         </span>
                       )}
                     </td>
